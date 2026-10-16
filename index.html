@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>도트 서울</title>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="fade"></div>
+
+  <!-- 1. 캐릭터 그리기 -->
+  <section id="drawScreen" class="screen">
+    <div id="drawInner">
+    <div class="title-banner">
+      <h1>도트 서울</h1>
+      <p>입체 틀에 색을 칠해 나만의 캐릭터를 만들어요</p>
+    </div>
+    <div class="panel draw-panel">
+      <div class="viewport-wrap">
+        <canvas id="skinView"></canvas>
+        <div class="view-hint">왼쪽 클릭: 칠하기 · 빈 곳/오른쪽 드래그: 돌리기 · 휠: 확대</div>
+        <div class="view-btns">
+          <button class="tool small" data-view="front">앞</button>
+          <button class="tool small" data-view="left">왼쪽</button>
+          <button class="tool small" data-view="back">뒤</button>
+          <button class="tool small" data-view="right">오른쪽</button>
+          <button class="tool small" data-view="top">위</button>
+          <button class="tool small toggle" id="walkBtn">▶ 걸어보기</button>
+        </div>
+      </div>
+      <div class="side">
+        <div class="group">
+          <div class="label">도구</div>
+          <div class="tools">
+            <button class="tool active" data-tool="pen" title="펜 (B)">✎ 펜</button>
+            <button class="tool" data-tool="fill" title="면 채우기 (G)">◆ 면 채우기</button>
+            <button class="tool" data-tool="part" title="부위 통째로 칠하기 (P)">▣ 부위 통칠</button>
+            <button class="tool" data-tool="picker" title="스포이드 (I)">◉ 스포이드</button>
+          </div>
+          <div class="tools">
+            <button class="tool toggle active" id="mirrorBtn" title="좌우 대칭 (M)">⇋ 좌우 대칭</button>
+            <button class="tool" id="undoBtn" title="되돌리기 (Ctrl+Z)">↶ 되돌리기</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">팔레트</div>
+          <div id="palette"></div>
+          <label class="custom-color" for="customColor">직접 고르기 <input type="color" id="customColor" value="#ff7b54" /></label>
+        </div>
+        <div class="group">
+          <div class="label">예시에서 시작하기</div>
+          <div class="tools">
+            <button class="tool" data-template="farmer">밀짚모자 농부</button>
+            <button class="tool" data-template="basic">기본 틀</button>
+          </div>
+        </div>
+      </div>
+      <div class="side">
+        <div class="group">
+          <div class="label">면 확대 편집</div>
+          <select id="partSel"></select>
+          <div id="faceBtns"></div>
+          <canvas id="faceCanvas" width="240" height="240"></canvas>
+          <div id="faceLabel"></div>
+        </div>
+        <div class="group">
+          <div class="label">이름</div>
+          <input id="nameInput" maxlength="8" placeholder="이름 입력" autocomplete="off" />
+        </div>
+        <button id="toPreview" class="btn big">캐릭터 완성 ▶</button>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- 2. 월드 미리보기 -->
+  <section id="previewScreen" class="screen hidden">
+    <div class="panel preview-panel">
+      <h2><span id="pvName"></span>, 서울에 도착!</h2>
+      <p>월드에서는 이런 모습으로 돌아다녀요. 화면을 드래그해서 돌려볼 수 있어요.</p>
+      <div class="btn-row">
+        <button id="backToDraw" class="btn">◀ 다시 꾸미기</button>
+        <button id="enterWorld" class="btn big green">월드 입장 ▶</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 월드 HUD -->
+  <section id="hud" class="hidden">
+    <div class="hud-player panel small">
+      <canvas id="portrait" width="48" height="48"></canvas>
+      <div><div id="hudName"></div><div class="sub" id="hudPlace">서울</div></div>
+    </div>
+    <div class="hud-clock panel small">
+      <div id="hudDate">가을 16일 (금)</div>
+      <div id="hudTime">6:00 am</div>
+      <div class="coins"><i class="coin"></i><span id="hudCoins">0</span></div>
+    </div>
+    <div class="hud-hint">WASD 이동 · Shift 달리기 · Space 점프 · E 상호작용 · 드래그 시점 회전(위로 끌면 하늘) · 휠 줌 · R 시점 초기화 · M 지도 · Esc 다시 꾸미기</div>
+    <canvas id="minimap" title="M·클릭: 지도 크게/작게 · 휠: 확대/축소 · 큰 지도는 드래그로 이동"></canvas>
+    <div id="promptBubble" class="hidden"></div>
+    <div id="dialog" class="panel hidden">
+      <div id="dialogName"></div>
+      <div id="dialogText"></div>
+      <div class="dialog-next">▼</div>
+    </div>
+    <!-- 지하철 역 고르기 -->
+    <div id="subwayPanel" class="panel hidden">
+      <h2><span class="line2-badge">2</span> 2호선 <b id="subwayHere"></b>역</h2>
+      <p class="subway-sub">어디로 갈까요? 역을 누르거나 숫자키를 눌러요</p>
+      <div class="subway-loop" id="subwayLoop"></div>
+      <div class="btn-row"><button class="btn" id="subwayClose">닫기 (Esc)</button></div>
+    </div>
+  </section>
+  <!-- 지하철 이동 화면 -->
+  <div id="travel" class="hidden">
+    <div class="travel-tunnel"><div class="travel-train"><i></i><i></i><i></i></div></div>
+    <div class="travel-text" id="travelText"></div>
+  </div>
+
+  <!-- 4. 미니게임 HUD -->
+  <section id="miniHud" class="hidden">
+    <div class="panel small mini-top">
+      <div class="mini-title" id="miniTitle"></div>
+      <div class="hearts" id="hearts"></div>
+      <div class="timer" id="timerBox"><div id="timerFill"></div></div>
+      <div class="score">점수 <b id="miniScore">0</b> <span id="miniCombo"></span></div>
+      <div class="mini-time" id="miniTime"></div>
+    </div>
+    <button id="quitMini" class="btn" title="나가기 (Esc) · 이번 판 보상은 받지 못해요">✕ 나가기</button>
+    <div id="miniOverlay"></div>
+    <div class="hud-hint" id="miniHint"></div>
+  </section>
+  <div id="countdown" class="hidden"></div>
+  <section id="resultScreen" class="screen hidden">
+    <div class="panel result-panel">
+      <h2 id="resultTitle">끝!</h2>
+      <div class="result-rows">
+        <div id="resultRows"></div>
+        <div>점수 <b id="rScore">0</b> <span id="rBest"></span></div>
+        <div class="earn"><i class="coin"></i> +<b id="rCoins">0</b>골드</div>
+      </div>
+      <div class="btn-row">
+        <button id="retryMini" class="btn">다시 하기</button>
+        <button id="exitMini" class="btn big green">서울로 돌아가기</button>
+      </div>
+    </div>
+  </section>
+  <div id="floaters"></div>
+  <div id="toast" class="hidden"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
