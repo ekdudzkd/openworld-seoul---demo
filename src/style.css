@@ -185,7 +185,7 @@ button, input { font-family: inherit; }
 #view.grabbing { cursor: grabbing; }
 
 /* 서울 미니맵 */
-#minimap { position: absolute; right: 16px; top: 112px; border: 3px solid #5b2f12; border-radius: 6px; box-shadow: 0 3px 0 rgba(0,0,0,.35); image-rendering: pixelated; background: #3e84c4; cursor: pointer; pointer-events: auto; }
+#minimap { position: absolute; right: 16px; top: 144px; /* 시계 패널(아래 끝 약 130px)과 14px 띄움 */ border: 3px solid #5b2f12; border-radius: 6px; box-shadow: 0 3px 0 rgba(0,0,0,.35); image-rendering: pixelated; background: #3e84c4; cursor: pointer; pointer-events: auto; }
 #minimap.big { right: 50%; top: 50%; transform: translate(50%, -50%); z-index: 5; }
 
 /* 오리배: 인원 고르기 */
@@ -340,7 +340,7 @@ button, input { font-family: inherit; }
 .tour-skip { position: fixed; right: 16px; bottom: 16px; z-index: 20; color: #fff; font-size: 12px; text-shadow: 2px 2px 0 rgba(0,0,0,.7); }
 
 /* ---------- 택시 (데모) ---------- */
-.cab-btn { position: absolute; left: 16px; top: 92px; pointer-events: auto; font-size: 16px; padding: 7px 12px; }
+.cab-btn { position: absolute; left: 16px; top: 110px; /* 이름 카드(아래 끝 약 96px)와 14px 띄움 */ pointer-events: auto; font-size: 16px; padding: 7px 12px; }
 .cab-btn small { font-size: 10px; opacity: .7; margin-left: 2px; }
 #cabPanel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 32px)); pointer-events: auto; text-align: center; }
 #cabPanel h2 { margin: 0 0 4px; font-size: 22px; }
@@ -361,3 +361,71 @@ button, input { font-family: inherit; }
 #travel.cab .travel-train i:not(:first-child) { display: none; }
 #travel.cab .travel-train i { width: 96px; height: 40px; background: #ffd23f; box-shadow: inset 0 -10px 0 #3a3f4a, inset 0 8px 0 #9fd6f2; }
 @keyframes road { to { background-position: -100px 50%, 0 0; } }
+
+/* ---------- 홍대 인형뽑기 ---------- */
+.claw-timer { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); font-size: 30px; font-weight: 700; color: #fff; text-shadow: 3px 3px 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink); }
+.claw-timer.hurry { color: #ff7b6b; animation: bob .4s steps(2) infinite; }
+
+/* ---------- 잠실 홈런 더비 ---------- */
+.hr-info { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); background: rgba(255,248,230,.92); border: 3px solid var(--ink); padding: 4px 12px; font-size: 15px; white-space: nowrap; }
+.hr-info b { font-size: 18px; }
+.hr-info span { color: #c0302a; font-weight: 700; }
+
+/* ---------- 63빌딩 무한의 계단 ---------- */
+.st-floor { position: absolute; left: 50%; top: 78px; transform: translateX(-50%); font-size: 22px; font-weight: 700; color: #fff; text-shadow: 3px 3px 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink); white-space: nowrap; }
+.st-floor b { font-size: 44px; color: #ffe14f; }
+.st-floor small { font-size: 16px; }
+.st-energy { position: absolute; left: 50%; top: 138px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; font-weight: 700; color: #fff; text-shadow: 2px 2px 0 var(--ink); }
+.st-energy div { width: min(320px, 60vw); height: 14px; background: #3a2410; border: 3px solid var(--ink); }
+.st-energy i { display: block; height: 100%; width: 100%; background: #6fdc4a; }
+.st-energy.low i { background: #ff7b6b; animation: bob .3s steps(2) infinite; }
+.st-keys { position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); display: flex; gap: 14px; }
+.st-keys div { background: #fff8e6; border: 3px solid var(--ink); padding: 6px 12px; font-weight: 700; font-size: 15px; white-space: nowrap; }
+.st-keys div.up { background: #c8f2a6; }
+.st-keys b { background: var(--ink); color: #fff; padding: 0 5px; margin-right: 4px; font-size: 12px; }
+
+/* ---------- 예술의전당 지휘자 ---------- */
+.cd-section { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); text-align: center; color: #fff; text-shadow: 2px 2px 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink), 0 2px 0 var(--ink); white-space: nowrap; }
+.cd-section b { display: block; font-size: 30px; color: #ffe14f; }
+.cd-section b small { font-size: 16px; color: #fff; }
+.cd-section span { font-size: 15px; }
+.cd-section.pop { animation: pop .35s steps(4); }
+.cd-meters { position: absolute; left: 14px; bottom: 44px; width: min(300px, calc(100vw - 300px)); min-width: 200px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.cd-row { display: flex; align-items: center; gap: 8px; }
+.cd-row span { width: 38px; font-weight: 700; }
+.cd-row em { width: 52px; font-style: normal; font-weight: 700; text-align: right; }
+.cd-bar { position: relative; flex: 1; height: 14px; background: #e9d9b8; border: 2px solid var(--ink); }
+.cd-bar .zone { position: absolute; top: 0; bottom: 0; background: #8fd16a; }
+.cd-bar .zone.any { background: #cfe8b8; }
+.cd-bar i { position: absolute; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; background: #e8413a; border: 1px solid var(--ink); transition: left .1s; }
+
+/* ---------- 강남 K-팝 댄스 ---------- */
+.parade-track.kpop-track .slot { background: rgba(40,16,54,.88); border-color: #ff6ec7; box-shadow: 0 0 0 2px var(--ink); }
+.parade-track.kpop-track .slot.now { background: #ff6ec7; }
+.parade-track.kpop-track .slot.ok { background: #a5e07f; }
+.parade-track.kpop-track .slot.bad { background: #ff8a7a; }
+/* K-팝 포즈 챌린지: 지금 잡을 포즈 카드 + 남은 시간 막대, 몸으로 할 때 지금 인식된 포즈 표시 */
+.kp-card { position: absolute; left: 50%; top: 78px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; background: #fff8e6; border: 4px solid var(--ink); box-shadow: 4px 4px 0 rgba(0,0,0,.35); padding: 6px 18px 8px; min-width: 200px; }
+.kp-card i { font-style: normal; font-size: 40px; line-height: 1.1; }
+.kp-card b { font-size: 20px; }
+.kp-card.pop { animation: pop .3s steps(3); }
+.kp-card.ok { background: #b8f0a0; } .kp-card.bad { background: #ff9a8a; }
+.kp-bar { display: block; width: 100%; height: 8px; background: #e2d6c0; border: 2px solid var(--ink); margin-top: 4px; }
+.kp-bar span { display: block; height: 100%; width: 100%; background: #ff6ec7; }
+.kp-keys div.on { background: #ffe14f; transform: translateY(-3px); }
+.kp-phase { top: 200px; }
+.kp-card small { font-size: 12px; }
+
+/* ---------- 미니게임 설명 화면 (들어가면 먼저) ---------- */
+.game-intro { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(600px, calc(100vw - 32px)); max-height: calc(100vh - 120px); overflow-y: auto; pointer-events: auto; text-align: center; }
+.game-intro h2 { margin: 0 0 6px; font-size: 24px; }
+.gi-chips { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; }
+.gi-chips span { font-size: 12px; background: #fff8e6; border: 2px solid var(--ink); padding: 1px 8px; }
+.gi-goal { margin: 0 0 8px; font-size: 16px; font-weight: 700; line-height: 1.5; }
+.gi-tips { margin: 0 auto 10px; padding: 0 0 0 18px; text-align: left; font-size: 13px; line-height: 1.6; max-width: 480px; }
+.gi-ctrl { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; text-align: left; }
+.gi-ctrl div { display: flex; gap: 8px; align-items: baseline; background: #fff8e6; border: 2px solid var(--ink); padding: 6px 10px; font-size: 12px; line-height: 1.5; }
+.gi-ctrl b { white-space: nowrap; font-size: 13px; }
+.game-intro .btn-row { flex-wrap: wrap; }
+.game-intro .btn small { display: block; font-size: 11px; font-weight: 400; margin-top: 3px; }
+.gi-foot { margin: 10px 0 0; font-size: 11px; opacity: .8; }

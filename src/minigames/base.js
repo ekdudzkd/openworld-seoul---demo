@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Avatar } from '../character.js';
 import { rng, canvasTexture, drawTile } from '../textures.js';
 import { sfx } from '../sfx.js';
+import { INTRO } from './intro.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -68,7 +69,7 @@ export class MiniGame {
 
   // ---------- 진행 ----------
   start() {
-    if (this.camChoice && !this.chosen) { this.chooseControl(); return; }
+    if (!this.chosen) { this.showIntro(); return; }
     this.time = this.duration; this.score = 0; this.combo = 0; this.maxCombo = 0;
     this.hearts = this.maxHearts; this.hitFlash = 0;
     this.state = 'countdown'; this.cdT = 3.2;
@@ -80,24 +81,36 @@ export class MiniGame {
   }
   restart() { this.start(); }
 
-  // 카메라로도 할 수 있는 게임: { label, desc, on, set(on) } (손 → camctl.js, 몸 → parade.js가 직접 정함)
+  // 카메라로도 할 수 있는 게임: { label, desc, how, on, set(on) } (손 → camctl.js, 몸 → parade·kpop이 직접 정함)
   get camChoice() { return this.camCtl?.choice || null; }
-  // 들어올 때 한 번: 키보드로 할지 카메라로 할지 고르기 (게임 중에는 오른쪽 위 버튼으로 바꿈)
-  chooseControl() {
-    const ch = this.camChoice;
+  // 들어오면 먼저: 게임 설명 + 시작 버튼 (카메라 게임은 키보드/카메라 중 골라서 시작). 다시 하기 땐 안 나옴
+  showIntro() {
+    const ch = this.camChoice, info = INTRO[this.meta.id] || {}, m = this.meta;
     this.state = 'choose';
     $('miniOverlay').innerHTML = '';
     this.setupHud();
     $('timerBox').classList.add('hidden'); $('hearts').classList.add('hidden');
     $('miniScore').textContent = 0; $('miniCombo').textContent = '';
+    $('miniHint').textContent = '';
+    const chips = [m.duration && `⏱ ${m.duration}초`, m.hearts && `❤️ 하트 ${m.hearts}개`].filter(Boolean);
     const el = document.createElement('div');
-    el.className = 'panel ctrl-pick';
-    el.innerHTML = `<h3>어떻게 할까요?</h3><div class="btn-row">
-      <button class="btn big${ch.on ? '' : ' green'}" data-on="0">⌨️ 키보드로 하기<small>키보드 · 마우스</small></button>
-      <button class="btn big${ch.on ? ' green' : ''}" data-on="1">${ch.label}<small>${ch.desc}</small></button></div>
-      <p>1 · 2 키로도 고를 수 있어요 · 게임 중에도 오른쪽 위 버튼으로 바꿀 수 있어요</p>`;
-    const pick = (on) => { removeEventListener('keydown', onKey); sfx.click(); ch.set(on); this.chosen = true; this.start(); };
-    const onKey = (e) => { if (this.state !== 'choose') return removeEventListener('keydown', onKey); if (e.code === 'Digit1') pick(false); else if (e.code === 'Digit2') pick(true); else if (e.code === 'Enter') pick(ch.on); };
+    el.className = 'panel game-intro';
+    el.innerHTML = `<h2>${m.title}</h2>
+      ${chips.length ? `<div class="gi-chips">${chips.map((c) => `<span>${c}</span>`).join('')}</div>` : ''}
+      <p class="gi-goal">${info.goal || ''}</p>
+      ${info.tips ? `<ul class="gi-tips">${info.tips.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}
+      <div class="gi-ctrl"><div><b>⌨️ 키보드</b><span>${m.hint || ''}</span></div>${ch ? `<div><b>${ch.label.replace(' 하기', '')}</b><span>${ch.how || ch.desc}</span></div>` : ''}</div>
+      <div class="btn-row">${ch
+        ? `<button class="btn big${ch.on ? '' : ' green'}" data-on="0">⌨️ 키보드로 시작<small>1</small></button><button class="btn big${ch.on ? ' green' : ''}" data-on="1">${ch.label.replace('하기', '시작')}<small>2 · ${ch.desc}</small></button>`
+        : '<button class="btn big green" data-on="0">▶ 시작하기<small>Enter</small></button>'}</div>
+      <p class="gi-foot">Enter = ${ch ? '초록 버튼으로 ' : ''}시작 · Esc = 나가기${ch ? ' · 게임 중에도 오른쪽 위 버튼으로 조작을 바꿀 수 있어요' : ''}</p>`;
+    const pick = (on) => { removeEventListener('keydown', onKey); sfx.click(); ch?.set(on); this.chosen = true; this.start(); };
+    const onKey = (e) => {
+      if (this.state !== 'choose') return removeEventListener('keydown', onKey);
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') pick(!!ch?.on);
+      else if (ch && e.code === 'Digit1') pick(false);
+      else if (ch && e.code === 'Digit2') pick(true);
+    };
     el.onclick = (e) => { const b = e.target.closest('[data-on]'); if (b) pick(b.dataset.on === '1'); };
     removeEventListener('keydown', this.chooseKey); this.chooseKey = onKey; // 예전 창의 키 처리는 떼어 냄
     addEventListener('keydown', onKey);
@@ -105,6 +118,7 @@ export class MiniGame {
   }
 
   update(dt, t, keys) {
+    if (this.state === 'choose') return; // 조작 고르는 중: 아직 reset() 전이라 화면만 보여 줌
     if (this.state === 'countdown' && this.camCtl?.pending) { // 카메라 준비될 때까지 기다림
       const cd = $('countdown'); cd.classList.remove('hidden'); cd.textContent = '📷';
       this.idle(dt, t); return;

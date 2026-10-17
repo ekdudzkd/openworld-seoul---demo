@@ -97,6 +97,7 @@ export class DuckBoatGame extends MiniGame {
 
   // 참가 인원 고르기 (2~6척) → 그다음에 카운트다운
   start() {
+    if (!this.chosen) { super.start(); return; } // 설명 화면 먼저 (base.showIntro → 고르면 다시 여기로)
     this.meta = this.constructor.meta;
     this.state = 'setup';
     $('miniOverlay').innerHTML = '';
@@ -106,12 +107,8 @@ export class DuckBoatGame extends MiniGame {
     this.layout(this.n || 6);
     const pick = document.createElement('div');
     pick.className = 'panel duck-pick';
-    pick.innerHTML = `<h3>몇 척이서 겨룰까요?</h3><div class="btn-row">${[2, 3, 4, 5, 6].map((n) => `<button class="btn${n === (this.n || 6) ? ' green' : ''}" data-n="${n}">${n}척</button>`).join('')}</div><p>숫자키 2~6 으로도 고를 수 있어요 · 나 포함</p>
-      <h3 class="ctrl-h">어떻게 할까요?</h3><div class="btn-row ctrl-row"><button class="btn" data-c="0">⌨️ 키보드로<small>Space 연타 · A/D</small></button><button class="btn" data-c="1">✋ 손으로 첨벙첨벙<small>웹캠에 두 손을 비춰요</small></button></div>`;
-    const mark = () => pick.querySelectorAll('[data-c]').forEach((b) => b.classList.toggle('green', (b.dataset.c === '1') === this.camCtl.on));
-    mark();
+    pick.innerHTML = `<h3>몇 척이서 겨룰까요?</h3><div class="btn-row">${[2, 3, 4, 5, 6].map((n) => `<button class="btn${n === (this.n || 6) ? ' green' : ''}" data-n="${n}">${n}척</button>`).join('')}</div><p>숫자키 2~6 으로도 고를 수 있어요 · 나 포함</p>`;
     pick.onclick = (e) => {
-      const c = e.target.closest('[data-c]'); if (c) { sfx.click(); this.camCtl.save(c.dataset.c === '1'); mark(); return; }
       const n = +e.target.dataset?.n; if (n) this.begin(n);
     };
     $('miniOverlay').appendChild(pick);

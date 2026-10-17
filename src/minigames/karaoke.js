@@ -75,6 +75,7 @@ export class KaraokeGame extends MiniGame {
 
   // 곡 고르기 → 카운트다운
   start() {
+    if (!this.chosen) { super.start(); return; } // 설명 화면 먼저 (base.showIntro → 고르면 다시 여기로)
     this.meta = this.constructor.meta;
     this.state = 'setup';
     $('miniOverlay').innerHTML = '';

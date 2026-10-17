@@ -183,7 +183,7 @@ addEventListener('keydown', (e) => {
     const resultOpen = !$('resultScreen').classList.contains('hidden');
     if (e.code === 'Enter' && resultOpen) $('exitMini').click();
     else if (e.code === 'Escape' && !resultOpen) $('quitMini').click();
-    else if (!e.repeat && !resultOpen) mini.keyDown(e.code);
+    else if (!e.repeat && !resultOpen && mini.state !== 'choose') mini.keyDown(e.code); // 조작 고르는 창의 1·2 키는 게임에 안 넘김
   }
 });
 addEventListener('keyup', (e) => { keys.delete(e.code); if (mode === 'mini') mini.keyUp(e.code); });

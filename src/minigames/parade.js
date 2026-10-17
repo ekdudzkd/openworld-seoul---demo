@@ -159,7 +159,7 @@ export class ParadeGame extends MiniGame {
   quit() { super.quit(); this.leave(); }
   leave() { this.left = true; cam.stop(); this.chosen = false; }
   // 시작할 때 고르는 창: 키보드 / 몸으로
-  get camChoice() { return { label: '🕺 몸으로 하기', desc: '웹캠 앞에서 허리 위가 보이게', on: this.useCam, set: (on) => { this.useCam = on; savePref(on); } }; }
+  get camChoice() { return { label: '🕺 몸으로 하기', desc: '웹캠 앞에서 허리 위가 보이게', how: '허리 위가 보이게 서서 대장의 동작을 몸으로 — 폴짝 점프 · 한 손 번쩍 · 손뼉 · 두 손 번쩍(만세). 박자는 조금 느려져요', on: this.useCam, set: (on) => { this.useCam = on; savePref(on); } }; }
 
   // 한 판: [준비 1박] → [대장 시범 n박] → [쉼 1박] → [내 차례 n박]
   newRound(startBeat) {
@@ -174,7 +174,7 @@ export class ParadeGame extends MiniGame {
     this.slots = [...this.trackEl.querySelectorAll('.slot')];
   }
 
-  keyDown(code) { this.input(this.moves.findIndex((x) => x.keys.includes(code))); }
+  keyDown(code) { if (this.moves) this.input(this.moves.findIndex((x) => x.keys.includes(code))); } // 조작 고르는 중엔 아직 moves 없음
 
   // 키보드·카메라 공통 입력 (m: this.moves의 번호)
   input(m) {

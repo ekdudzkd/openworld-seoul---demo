@@ -57,9 +57,11 @@ export const LANDMARKS = [
   { id: 'myeongdong', gu: '중구', x: 8, z: 3, hw: 2.6, hd: 1.6, zone: 1, ground: 'plaza', door: [0, 1.9] },      // 명동 거리 (길 안내 도우미)
   { id: 'itaewon', gu: '용산구', x: 11.5, z: 21, hw: 2.6, hd: 1.7, zone: 1, ground: 'plaza', door: [0, -2] },     // 이태원 지구촌 축제 (퍼레이드)
   { id: 'karaoke', gu: '마포구', x: -34.5, z: 6.8, hw: 1.7, hd: 1.4, zone: 1, ground: 'plaza', door: [0, 1.6] },      // 홍대 코인노래방 (리듬게임)
+  { id: 'clawshop', gu: '마포구', x: -31.2, z: 6.6, hw: 1.2, hd: 1.2, zone: 1, ground: 'plaza', door: [0, 1.4] },     // 홍대 인형뽑기 가게
   { id: 'license', gu: '노원구', x: 54, z: -77, hw: 4.6, hd: 3.4, zone: 1, ground: 'plaza', door: [0, 3.6] },          // 도봉운전면허시험장 (카트 레이싱)
   { id: 'worldcup', gu: '마포구', x: -46, z: -4, hw: 4.8, hd: 4, zone: 1, ground: 'plaza', door: [0, 4.3] },
   // 강남
+  { id: 'botanic', gu: '강서구', x: -84.7, z: -5.6, hw: 3, hd: 2.4, zone: 1, ground: 'plaza', door: [3.3, 0] },     // 마곡 서울식물원 (물 주기)
   { id: 'gimpo', gu: '강서구', x: -104, z: 4, hw: 7, hd: 3.5, zone: 1, ground: 'road', door: [7.5, 0] },
   { id: 'mokdong', gu: '양천구', x: -61, z: 25, hw: 3, hd: 2, zone: 1, ground: 'plaza', door: [0, 2.3] },
   { id: 'gocheok', gu: '구로구', x: -65, z: 48.5, hw: 3.2, hd: 3.2, zone: 1, ground: 'plaza', door: [0, 3.5] },
@@ -72,6 +74,7 @@ export const LANDMARKS = [
   { id: 'coex', gu: '강남구', x: 50, z: 39, hw: 3.6, hd: 2.4, zone: 1, ground: 'plaza', door: [0, -2.6] },
   { id: 'bongeunsa', gu: '강남구', x: 50, z: 33.5, hw: 2.2, hd: 1.6, zone: 1, ground: 'plaza', door: [0, 1.8] },
   { id: 'gangnamstn', gu: '강남구', x: 31, z: 49, hw: 1.6, hd: 1.6, zone: 1, ground: 'plaza', door: [0, 1.8] },
+  { id: 'ballpark', gu: '송파구', x: 66.3, z: 40.5, hw: 1.8, hd: 1.9, zone: 1, ground: 'plaza', door: [0, -2.1] },  // 잠실야구장 (홈런 더비) — 실제보다 조금 동쪽 (탄천 자리를 피함)
   { id: 'lotte', gu: '송파구', x: 74.5, z: 37.5, hw: 2.2, hd: 2.2, zone: 1, ground: 'plaza', door: [0, 2.4] },
   { id: 'seokchon', gu: '송파구', x: 75, z: 42.5, hw: 3.6, hd: 2.3, zone: 1, door: [0, -2.4] },
   { id: 'olympic', gu: '송파구', x: 88, z: 31, hw: 6.5, hd: 5, zone: 2, door: [-6.6, 0] },

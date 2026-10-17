@@ -124,6 +124,7 @@ export class PoseInput {
     const now = performance.now(), dt = Math.min(0.2, (now - this.lastT) / 1000); this.lastT = now;
     const res = this.lm.detectForVideo(v, now);
     const lm = res.landmarks?.[0];
+    this.joints = lm || null; this.asp = v.videoWidth / v.videoHeight; // 관절 좌표 (게임이 직접 자세를 판정할 때 씀)
     this.seen = !!lm;
     if (lm) { const m = this.g.update(lm, v.videoWidth / v.videoHeight, dt); if (m) { this.flash = { m, t: now }; this.onMove?.(m); } }
     this.draw(lm);
@@ -153,7 +154,7 @@ export class PoseInput {
     if (lm) {
       const vis = (i) => lm[i].visibility ?? 1;
       const sw = Math.abs(lm[11].x - lm[12].x);
-      msg = vis(15) < 0.4 && vis(16) < 0.4 ? '두 손이 화면에 보이게!' : sw > 0.45 ? '조금 뒤로 가 주세요' : sw < 0.1 ? '조금 앞으로 와 주세요' : POSE_LABEL[this.g.pose];
+      msg = vis(15) < 0.4 && vis(16) < 0.4 ? '두 손이 화면에 보이게!' : sw > 0.45 ? '조금 뒤로 가 주세요' : sw < 0.1 ? '조금 앞으로 와 주세요' : this.label || POSE_LABEL[this.g.pose]; // label: 게임이 정한 안내 (없으면 퍼레이드 동작 이름)
     }
     g.fillStyle = 'rgba(63,29,11,.75)'; g.fillRect(0, H - 24, W, 24);
     g.fillStyle = '#fff'; g.font = '700 14px Galmuri11, monospace';

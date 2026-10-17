@@ -19,7 +19,7 @@ export class CamControl {
   }
   get hands() { return hands; }
   // 시작할 때 고르는 창에 쓰는 정보 (base.chooseControl)
-  get choice() { return { label: '✋ 손으로 하기', desc: '웹캠에 손만 비추면 돼요', on: this.on, set: (on) => this.save(on) }; }
+  get choice() { return { label: '✋ 손으로 하기', desc: '웹캠에 손만 비추면 돼요', how: this.hint.replace(/^✋+\s*/, ''), on: this.on, set: (on) => this.save(on) }; }
 
   // base.start()가 오버레이를 비운 뒤 부름
   mount() {
