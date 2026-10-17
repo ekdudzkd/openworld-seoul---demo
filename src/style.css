@@ -295,5 +295,40 @@ button, input { font-family: inherit; }
 .parade-phase { position: absolute; left: 50%; top: 140px; transform: translateX(-50%); font-size: 22px; font-weight: 700; color: #fff; text-shadow: 2px 2px 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink); }
 .parade-phase.mine { color: #ffe14f; }
 .parade-keys { position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); display: flex; gap: 8px; }
-.parade-keys div { background: #fff8e6; border: 3px solid var(--ink); padding: 4px 10px; font-weight: 700; font-size: 14px; }
+.parade-keys div { white-space: nowrap; background: #fff8e6; border: 3px solid var(--ink); padding: 4px 10px; font-weight: 700; font-size: 14px; }
 .parade-keys b { background: var(--ink); color: #fff; padding: 0 5px; margin-right: 4px; }
+.parade-keys small { font-weight: 400; font-size: 11px; opacity: .75; }
+.parade-cam-btn { position: absolute; right: 14px; top: 66px; pointer-events: auto; font-size: 13px; padding: 6px 10px; }
+.pose-cam { position: absolute; right: 14px; bottom: 44px; width: 256px; height: 192px; border: 3px solid var(--ink); box-shadow: 3px 3px 0 rgba(0,0,0,.3); image-rendering: auto; background: #222; }
+.parade-cam-err { position: absolute; left: 50%; top: 180px; transform: translateX(-50%); background: #fff8e6; border: 3px solid var(--ink); padding: 6px 12px; font-size: 14px; font-weight: 700; }
+@media (max-width: 760px) { .pose-cam { width: 128px; height: 96px; bottom: 100px; } }
+
+/* ---------- 김포공항 비행기 ---------- */
+.flight-route { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(255,248,230,.9); border: 3px solid var(--ink); padding: 4px 10px; font-size: 14px; }
+.flight-route .bar { position: relative; width: min(46vw, 320px); height: 10px; background: #cfe3f0; border: 2px solid var(--ink); }
+.flight-route .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #2f7fd8; }
+.flight-route .bar span { position: absolute; top: 50%; left: 0; transform: translate(-50%, -55%); font-size: 18px; }
+.flight-msg { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); background: #fff8e6; border: 4px solid var(--ink); box-shadow: 5px 5px 0 rgba(0,0,0,.3); padding: 14px 22px; font-size: clamp(18px, 3vw, 28px); font-weight: 700; white-space: nowrap; animation: popC .35s steps(4); }
+@keyframes popC { from { transform: translate(-50%, -50%) scale(.6); } }
+.flight-msg.ok { color: #2f6fd8; }
+.flight-msg.bad { color: #c0302a; }
+
+/* ---------- 성수동 스트리트 스냅 ---------- */
+.fashion-mission { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); background: #fff8e6; border: 3px solid var(--ink); box-shadow: 4px 4px 0 rgba(0,0,0,.3); padding: 6px 14px 8px; text-align: center; }
+.fashion-mission small { display: block; font-size: 12px; margin-bottom: 4px; }
+.fashion-mission div { display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; white-space: nowrap; }
+.fashion-mission .chip { display: inline-flex; align-items: center; gap: 6px; }
+.fashion-mission .chip i { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--ink); }
+.fashion-mission.pop { animation: pop .3s steps(3); }
+.fashion-flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+.fashion-flash.on { animation: snapFlash .35s ease-out; }
+@keyframes snapFlash { from { opacity: .85; } to { opacity: 0; } }
+#miniOverlay:has(.pose-cam) .kart-speed { bottom: 250px; } /* 손 미리보기 위로 */
+
+/* ---------- 시작할 때 조작 고르기 ---------- */
+.ctrl-pick { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); text-align: center; pointer-events: auto; max-width: calc(100vw - 32px); }
+.ctrl-pick h3, .duck-pick .ctrl-h { margin: 0 0 12px; font-size: 20px; }
+.duck-pick .ctrl-h { margin-top: 16px; }
+.ctrl-pick p { margin: 12px 0 0; font-size: 12px; }
+.ctrl-pick .btn small, .ctrl-row .btn small { display: block; font-size: 11px; font-weight: 400; margin-top: 4px; }
+.ctrl-pick .btn-row, .ctrl-row { flex-wrap: wrap; justify-content: center; }

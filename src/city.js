@@ -174,6 +174,9 @@ function pickStyle(r, gname, x, z) {
   return 'villa';
 }
 
+// 지름길: 바둑판 도로가 없는 동네는 SHORTCUT칸마다 가로·세로 한 줄씩 건물을 비워 둠
+// → 건물 덩어리가 길어야 SHORTCUT-1칸이라, 길이 없어도 건물 사이로 바로 질러갈 수 있음 (바둑판 지역은 원래 골목이 촘촘함)
+const SHORTCUT = 5;
 export function buildCity(world, map) {
   const r = world.r, s = world.scene;
   const occ = new Uint8Array(NX * NZ);
@@ -186,6 +189,7 @@ export function buildCity(world, map) {
   const free = (tx, tz) => {
     if (tx < 0 || tz < 0 || tx >= NX || tz >= NZ) return false;
     const k = tz * NX + tx;
+    if (!map.grid(k) && (tx % SHORTCUT === 0 || tz % SHORTCUT === 0)) return false; // 지름길 칸
     return !occ[k] && !nearLM[k] && map.tile[k] === T.GRASS && map.zone[k] === ZN.NONE;
   };
   const roadNear = (tx, tz, w, d) => {
@@ -345,6 +349,30 @@ export function buildBridges(world, map) {
     return isB(tx, tz, 1) ? hAt(tz * NX + tx, z) : 0;
   };
   world.bridgePiers = []; // 수상택시가 부딪히는 교각
+  // 한강을 넓혀도 교각 수는 넓히기 전과 같게: 예전 다리 길이(원래 한강 칸 수)로 세던 개수를 새 다리의 높은 구간에 고르게 나눔
+  // → 다리가 길어진 만큼 교각 사이가 넓어져 수상택시가 지나가기 쉬움
+  const pierSpan = (tx, s, x) => {
+    let e = s; while (isB(tx, e + 1, 1)) e++;
+    const k0 = s * NX + tx;
+    // 예전 다리 = 원래 한강이던 칸의 처음~끝
+    let o0 = -1, o1 = -1;
+    for (let j = s; j <= e; j++) if (map.hanOrig ? map.hanOrig[j * NX + tx] : 1) { if (o0 < 0) o0 = j; o1 = j; }
+    if (o0 < 0) return;
+    const oldLen = o1 - o0 + 1, off = o0, ramp = Math.min(BRIDGE_RAMP, oldLen * 0.2);
+    let n = 0;
+    for (let j = 0; j < oldLen; j++) if ((off + j) % 3 === 0 && BRIDGE_H * THREE.MathUtils.smoothstep(Math.min(j + 0.5, oldLen - j - 0.5), 0, ramp) > 0.5) n++;
+    if (!n) return;
+    let a = -1, b = -1; // 새 다리에서 교각을 세울 수 있는 높은 구간
+    for (let j = s; j <= e; j++) if (hAt(k0 + (j - s) * NX, j + 0.5 - HZ) > 0.5) { if (a < 0) a = j; b = j + 1; }
+    if (a < 0) return;
+    for (let i = 0; i < n; i++) {
+      const z = a - HZ + ((i + 0.5) * (b - a)) / n, h = hAt(Math.floor(z + HZ) * NX + tx, z);
+      const top = h - 0.28, bot = -1.2;
+      big.box(1.7, top - bot, 0.5, '#9c9990', x + 0.5, (top + bot) / 2, z);
+      big.box(1.9, 0.12, 0.62, '#b8b4aa', x + 0.5, -0.2, z); // 물 닿는 곳 받침
+      world.bridgePiers.push({ x0: x + 0.5 - 0.95, x1: x + 0.5 + 0.95, z0: z - 0.31, z1: z + 0.31 });
+    }
+  };
   for (let tz = 0; tz < NZ; tz++) for (let tx = 0; tx < NX; tx++) {
     const k = tz * NX + tx;
     if (map.tile[k] !== T.BRIDGE) continue;
@@ -359,13 +387,8 @@ export function buildBridges(world, map) {
       const h = hAt(k, z);
       if (!isB(tx - 1, tz, 1)) { big.box(0.1, 0.35, 1, '#e8e4dc', x - 0.45, h + 0.2, z); if (tz % 2 === 0) big.box(0.12, 1.3, 0.12, '#d8d4cc', x - 0.45, h + 0.65, z); }
       if (!isB(tx + 1, tz, 1)) { big.box(0.1, 0.35, 1, '#e8e4dc', x + 0.45, h + 0.2, z); if (tz % 2 === 0) { big.box(0.12, 1.3, 0.12, '#d8d4cc', x + 0.45, h + 0.65, z); big.box(0.3, 0.12, 0.3, '#fff3b0', x + 0.45, h + 1.3, z); } }
-      // 교각: 물속에서 상판 밑까지 (다리가 충분히 높은 곳에만)
-      if (tz % 3 === 0 && !isB(tx - 1, tz, 1) && h > 0.5) {
-        const top = h - 0.28, bot = -1.2;
-        big.box(1.7, top - bot, 0.5, '#9c9990', x + 0.5, (top + bot) / 2, z);
-        big.box(1.9, 0.12, 0.62, '#b8b4aa', x + 0.5, -0.2, z); // 물 닿는 곳 받침
-        world.bridgePiers.push({ x0: x + 0.5 - 0.95, x1: x + 0.5 + 0.95, z0: z - 0.31, z1: z + 0.31 });
-      }
+      // 교각: 다리 한 줄(남북으로 이어진 구간)의 첫 칸에서 한꺼번에 세움
+      if (!isB(tx - 1, tz, 1) && !isB(tx, tz - 1, 1)) pierSpan(tx, tz, x);
     } else {
       small.box(1, 0.16, 1, '#a86c3a', x, -0.02, z);
       for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {

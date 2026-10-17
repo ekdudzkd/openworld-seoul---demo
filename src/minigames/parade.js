@@ -5,35 +5,52 @@ import { rng, signTexture } from '../textures.js';
 import { sfx } from '../sfx.js';
 import { MiniGame } from './base.js';
 import { npcSkin, HAIRS, TONES } from './npc.js';
+import { PoseInput } from '../pose.js';
 
 const $ = (id) => document.getElementById(id);
 // 동작 4가지 (방향키/WASD)
-const MOVES = [
-  { id: 'jump', name: '점프', icon: '⬆️', keys: ['ArrowUp', 'KeyW'], note: 784 },
-  { id: 'wave', name: '손 흔들기', icon: '🙋', keys: ['ArrowLeft', 'KeyA'], note: 587 },
-  { id: 'clap', name: '박수', icon: '👏', keys: ['ArrowRight', 'KeyD'], note: 659 },
+const KEY_MOVES = [
+  { id: 'jump', name: '점프', icon: '⬆️', keys: ['ArrowUp', 'KeyW'], note: 784, how: '폴짝 뛰기' },
+  { id: 'wave', name: '손 흔들기', icon: '🙋', keys: ['ArrowLeft', 'KeyA'], note: 587, how: '한 손 번쩍' },
+  { id: 'clap', name: '박수', icon: '👏', keys: ['ArrowRight', 'KeyD'], note: 659, how: '손뼉 짝' },
   { id: 'spin', name: '빙글', icon: '🌀', keys: ['ArrowDown', 'KeyS'], note: 523 },
 ];
-const BPM = 100, BEAT = 60 / BPM;
+// 카메라로 할 때는 빙글(뒤돌면 몸이 안 보임) 대신 만세
+const CAM_MOVES = [...KEY_MOVES.slice(0, 3), { id: 'hooray', name: '만세', icon: '🙌', keys: ['ArrowDown', 'KeyS'], note: 523, how: '두 손 번쩍' }];
+const BPM = 100, CAM_BPM = 66; // 카메라는 몸을 움직여야 해서 더 천천히
+let BEAT = 60 / BPM; // 판 시작할 때 모드에 맞춰 정함
 const WINDOW = 0.24, PERFECT = 0.1; // 박자 판정 (초)
+// 카메라: 인식이 조금 늦게 들어오므로 그만큼 당겨서 판정하고, 범위도 반 박자로 넉넉히 (박자만 맞으면 OK)
+const CAM_LAG = 0.12, CAM_WINDOW = 0.45, CAM_PERFECT = 0.2;
+const CAM_PREF = 'dotseoul.paradeCam';
+const loadPref = () => { try { return localStorage.getItem(CAM_PREF) === '1'; } catch { return false; } };
+const savePref = (on) => { try { localStorage.setItem(CAM_PREF, on ? '1' : '0'); } catch { /* 저장 못 해도 이번 판은 그대로 */ } };
+const cam = new PoseInput();
 // 퍼레이드 참가자 망토 색 (여러 나라 국기 색에서 따온 줄무늬)
 const CAPES = [['#0055a4', '#ffffff', '#ef4135'], ['#009c3b', '#ffdf00', '#002776'], ['#000000', '#dd0000', '#ffce00'], ['#ff9933', '#ffffff', '#138808'],
   ['#c60b1e', '#ffc400', '#c60b1e'], ['#ffffff', '#cd2e3a', '#0047a0'], ['#007a4d', '#ffb612', '#de3831'], ['#d52b1e', '#ffffff', '#d52b1e']];
 
 // 사람 동작 애니메이션 (아바타 공통)
+// 아이콘을 안 봐도 대장 몸짓만으로 구분되게, 동작마다 쓰는 몸 부분을 겹치지 않게 함
+//  점프: 몸 전체가 높이 뜀, 팔은 아래·뒤로 / 손 흔들기: 한 팔만 옆으로 들어 크게 좌우로 흔듦, 몸은 제자리
+//  박수: 두 팔을 앞으로 뻗어 손뼉 / 만세: 두 팔을 V자로 쭉 뻗고 멈춘 채 무릎만 콩콩
 function perform(st, av, dt, t) {
-  const r = av.root;
+  const r = av.root, J = av.joints;
   st.t += dt;
   const k = Math.min(1, st.t / (BEAT * 0.9));
-  const m = st.move;
-  r.position.y = st.baseY + (m === 'jump' ? Math.sin(Math.PI * k) * 0.9 : 0);
+  const m = st.move, on = m && k < 1;
+  r.position.y = st.baseY + (m === 'jump' ? Math.sin(Math.PI * k) * 0.9 : 0) + (m === 'hooray' && on ? Math.abs(Math.sin(Math.PI * 2 * k)) * 0.12 : 0);
   if (m === 'spin') r.rotation.y = st.yaw + k * Math.PI * 2; else r.rotation.y += (st.yaw - r.rotation.y) * Math.min(1, dt * 10);
   av.animate(dt, t, {
-    air: m === 'jump' && k < 1,
-    wave: m === 'wave' && k < 1,
-    armsUp: m === 'clap' && k < 1 && Math.floor(st.t / (BEAT / 4)) % 2 === 0,
-    moving: !m || k >= 1 ? st.march : false,
+    air: m === 'jump' && on,
+    clap: m === 'clap' && on ? (Math.floor(st.t / (BEAT / 4)) % 2 === 0 ? 1 : 0) : undefined,
+    moving: !on ? st.march : false,
   });
+  const arms = (lx, lz, rx, rz) => { J.armL.rotation.set(lx, 0, lz); J.armR.rotation.set(rx, 0, rz); };
+  if (on && m === 'jump') arms(0.55, -0.35, 0.55, 0.35);
+  if (on && m === 'wave') { arms(0, -0.06, 0, 2.3 + Math.sin(st.t * 15) * 0.6); J.head.rotation.z = 0.15; }
+  else J.head.rotation.z *= 0.8;
+  if (on && m === 'hooray') { arms(0, -2.65, 0, 2.65); av.torso.rotation.x = -0.12; }
   if (k >= 1) st.move = null;
 }
 const doMove = (st, move) => { st.move = move; st.t = 0; };
@@ -76,6 +93,8 @@ export class ParadeGame extends MiniGame {
     this.dancers = [[-3.2, -0.6], [3.2, -0.6], [-5.6, 0.4], [5.6, 0.4], [-1.9, 1.5], [4.4, 1.7]].map(([x, z], i) => mkDancer(i + 1, x, z));
     this.camera.position.set(0, 3.4, 8.2);
     this.camera.lookAt(0, 1.2, -0.5);
+    this.useCam = loadPref();
+    cam.onMove = (id) => { if (this.useCam) this.input(this.moves.findIndex((m) => m.id === id)); };
   }
 
   onAvatar() { this.player.position.set(1.4, 0, 1.9); this.me = { av: this.avatar, st: { move: null, t: 0, baseY: 0, yaw: 0, march: true } }; }
@@ -84,17 +103,63 @@ export class ParadeGame extends MiniGame {
     this.round = 0; this.cleared = 0; this.perfects = 0; this.goods = 0; this.misses = 0;
     this.songT = 0; this.lastBeat = -1;
     this.player.position.set(1.4, 0, 1.9); // 대장을 가리지 않게 살짝 옆
+    this.moves = this.useCam ? CAM_MOVES : KEY_MOVES;
+    BEAT = 60 / (this.useCam ? CAM_BPM : BPM);
     this.overlay();
     this.newRound(1);
+    if (this.useCam) this.openCam(); else cam.stop();
   }
   overlay() {
     const o = $('miniOverlay');
     const tr = document.createElement('div'); tr.className = 'parade-track'; o.appendChild(tr); this.trackEl = tr;
     const ph = document.createElement('div'); ph.className = 'parade-phase'; o.appendChild(ph); this.phaseEl = ph;
     const keys = document.createElement('div'); keys.className = 'parade-keys';
-    keys.innerHTML = MOVES.map((m, i) => `<div><b>${['↑', '←', '→', '↓'][i]}</b>${m.icon} ${m.name}</div>`).join('');
+    keys.innerHTML = this.moves.map((m, i) => `<div><b>${['↑', '←', '→', '↓'][i]}</b>${m.icon} ${m.name}${this.useCam ? ` <small>${m.how}</small>` : ''}</div>`).join('');
     o.appendChild(keys);
+    const btn = document.createElement('button'); btn.className = 'btn parade-cam-btn';
+    btn.textContent = this.useCam ? '⌨️ 키보드로 하기' : '📷 몸으로 하기';
+    btn.title = this.useCam ? '카메라를 끄고 방향키로 해요' : '웹캠 앞에서 몸으로 동작을 따라 해요 (영상은 내 컴퓨터 밖으로 나가지 않아요)';
+    btn.onclick = () => { sfx.click(); btn.blur(); this.setCam(!this.useCam); };
+    o.appendChild(btn);
+    if (this.useCam) o.appendChild(cam.canvas);
+    if (this.camError) {
+      const e = document.createElement('div'); e.className = 'parade-cam-err'; e.textContent = this.camError; o.appendChild(e);
+      this.camError = null; setTimeout(() => e.remove(), 4000);
+    }
   }
+
+  // 카메라 켜기/끄기: 동작 구성이 바뀌므로 처음부터 다시
+  setCam(on) { this.useCam = on; savePref(on); this.start(); }
+  openCam() {
+    if (cam.running) return;
+    this.camPending = true;
+    cam.start().then(() => {
+      this.camPending = false;
+      if (this.left) cam.stop(); // 켜는 사이에 나감
+    }).catch((e) => {
+      this.camPending = false;
+      this.camError = e?.name === 'NotAllowedError' ? '카메라를 허용하지 않아서 키보드로 할게요' : `카메라를 켜지 못했어요 (${e?.message || e})`;
+      if (this.left) { this.useCam = false; savePref(false); } else this.setCam(false);
+    });
+  }
+  start() { this.left = false; super.start(); }
+  // 카메라가 준비될 때까지 카운트다운을 멈춰 둠
+  update(dt, t, keys) {
+    if (this.camPending && this.state === 'countdown') {
+      $('countdown').classList.remove('hidden'); $('countdown').textContent = '📷';
+      this.phaseEl.textContent = '카메라 준비 중… (처음엔 조금 걸려요)';
+      this.idle(dt, t); return;
+    }
+    super.update(dt, t, keys);
+  }
+  setupHud() {
+    super.setupHud();
+    if (this.useCam) $('miniHint').textContent = '허리 위가 카메라에 다 보이게 서서 — 대장이 보여 준 동작을 "내 차례"에 박자 맞춰 몸으로! (키보드도 돼요)';
+  }
+  quit() { super.quit(); this.leave(); }
+  leave() { this.left = true; cam.stop(); this.chosen = false; }
+  // 시작할 때 고르는 창: 키보드 / 몸으로
+  get camChoice() { return { label: '🕺 몸으로 하기', desc: '웹캠 앞에서 허리 위가 보이게', on: this.useCam, set: (on) => { this.useCam = on; savePref(on); } }; }
 
   // 한 판: [준비 1박] → [대장 시범 n박] → [쉼 1박] → [내 차례 n박]
   newRound(startBeat) {
@@ -105,27 +170,31 @@ export class ParadeGame extends MiniGame {
     this.seq = seq; this.n = n;
     this.callStart = startBeat + 1; this.respStart = this.callStart + n + 1; this.roundEnd = this.respStart + n;
     this.inputs = new Array(n).fill(null); // 박자별 판정 결과
-    this.trackEl.innerHTML = seq.map((m, i) => `<span data-i="${i}" class="slot"><i>${MOVES[m].icon}</i></span>`).join('');
+    this.trackEl.innerHTML = seq.map((m, i) => `<span data-i="${i}" class="slot"><i>${this.moves[m].icon}</i></span>`).join('');
     this.slots = [...this.trackEl.querySelectorAll('.slot')];
   }
 
-  keyDown(code) {
-    const m = MOVES.findIndex((x) => x.keys.includes(code));
+  keyDown(code) { this.input(this.moves.findIndex((x) => x.keys.includes(code))); }
+
+  // 키보드·카메라 공통 입력 (m: this.moves의 번호)
+  input(m) {
     if (m < 0 || this.state !== 'play') return;
+    const MOVES = this.moves;
     doMove(this.me.st, MOVES[m].id);
-    const b = this.songT / BEAT;
+    const b = (this.songT - (this.useCam ? CAM_LAG : 0)) / BEAT;
     const i = Math.round(b) - this.respStart;
     if (i < 0 || i >= this.n) { this.float(this.player.position.clone().add(new THREE.Vector3(0, 2.4, 0)), '아직 대장 차례!', 'bad'); return; }
     if (this.inputs[i]) return;
     const off = Math.abs(b - Math.round(b)) * BEAT;
-    if (off > WINDOW) return;
+    if (off > (this.useCam ? CAM_WINDOW : WINDOW)) return;
     const ok = m === this.seq[i];
-    this.inputs[i] = ok ? (off < PERFECT ? 'perfect' : 'good') : 'wrong';
+    const perf = off < (this.useCam ? CAM_PERFECT : PERFECT);
+    this.inputs[i] = ok ? (perf ? 'perfect' : 'good') : 'wrong';
     const slot = this.slots[i]; slot.classList.add(ok ? 'ok' : 'bad');
     const pos = this.player.position.clone().add(new THREE.Vector3(0, 2.4, 0));
     if (ok) {
       this.combo++; this.maxCombo = Math.max(this.maxCombo, this.combo);
-      const perf = off < PERFECT; perf ? this.perfects++ : this.goods++;
+      perf ? this.perfects++ : this.goods++;
       this.score += (perf ? 4 : 2) + Math.floor(Math.min(this.combo, 10) / 2);
       sfx.note(MOVES[m].note, 0.18, 'square', 0.06);
       this.float(pos, perf ? '완벽!' : '좋아요!', 'gold');
@@ -139,6 +208,7 @@ export class ParadeGame extends MiniGame {
   }
 
   step(dt, t) {
+    const MOVES = this.moves;
     this.songT += dt;
     const b = Math.floor(this.songT / BEAT + 0.0001);
     if (b !== this.lastBeat) {

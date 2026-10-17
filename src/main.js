@@ -147,6 +147,7 @@ function setMode(m) {
     mini.start();
   }
   if (m !== 'mini') $('miniOverlay').innerHTML = '';
+  if (prev === 'mini' && m !== 'mini') mini?.leave?.(); // 카메라 등 정리
 }
 
 // ---------- 입력 ----------

@@ -245,6 +245,8 @@ export class Avatar {
     }
     if (st.wave) { armRZ = 2.7 + Math.sin(t * 12) * 0.35; armRX = 0; }
     if (st.armsUp) { armA = 0; armRX = 0; armZ = -2.75; armRZ = 2.75; }
+    // 박수: 두 팔을 앞으로 뻗고 안쪽으로 모음 (clap 0=벌림, 1=손 맞댐)
+    if (st.clap !== undefined) { const a = 0.15 + st.clap * 0.45; armA = -1.35; armRX = -1.35; armZ = -a; armRZ = -a; }
 
     lerp(J.legL.rotation, 'x', st.air ? -legA : legA);
     lerp(J.legR.rotation, 'x', st.air ? legA * 0.3 : -legA);

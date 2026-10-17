@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { box, makeTree } from '../world.js';
 import { sfx } from '../sfx.js';
 import { MiniGame } from './base.js';
+import { CamControl } from './camctl.js';
 
 const HALF_W = 6.2;     // 이동 가능한 좌우 범위
 const FRUITS = {
@@ -36,6 +37,7 @@ export class FruitGame extends MiniGame {
   };
 
   build() {
+    this.camCtl = new CamControl(this, { hint: '✋ 손을 좌우로 움직이면 바구니가 따라와요 (한 손이든 두 손이든 OK) — 돌멩이는 피하세요!' });
     this.camera.position.set(0, 5.4, 15);
     this.camera.lookAt(0, 2.6, 0);
     this.items = [];
@@ -114,6 +116,9 @@ export class FruitGame extends MiniGame {
   step(dt, t, keys) {
     const p = this.player;
     this.elapsed += dt;
+    // 손으로 하기: 손(두 손이면 가운데) 좌우 위치 → 바구니. 화면 가운데 60%만 움직여도 끝까지 가게
+    const hc = this.camCtl.on && this.camCtl.hands.center();
+    if (hc) this.mouseX = THREE.MathUtils.clamp((hc.x - 0.5) / 0.3, -1, 1) * HALF_W;
     let dir = 0;
     if (keys.has('KeyA') || keys.has('ArrowLeft')) dir -= 1;
     if (keys.has('KeyD') || keys.has('ArrowRight')) dir += 1;

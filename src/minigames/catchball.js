@@ -4,6 +4,7 @@ import { Avatar } from '../character.js';
 import { rng, signTexture } from '../textures.js';
 import { sfx } from '../sfx.js';
 import { MiniGame } from './base.js';
+import { CamControl } from './camctl.js';
 import { npcSkin } from './npc.js';
 
 const $ = (id) => document.getElementById(id);
@@ -20,6 +21,10 @@ export class CatchBallGame extends MiniGame {
   };
 
   build() {
+    this.camCtl = new CamControl(this, {
+      hint: '✋ 손을 움직이면 글러브가 따라와요 → 공을 받은 뒤 ✊ 주먹을 쥐면 초록 칸에서 던지기',
+      onEvent: (type) => { if (type === 'fist') this.release(); },
+    });
     const s = this.scene;
     s.fog = new THREE.Fog('#1d2a3a', 30, 70);
     this.scene.add(new THREE.HemisphereLight('#fff6e0', '#4a5a3a', 1.4));
@@ -164,6 +169,9 @@ export class CatchBallGame extends MiniGame {
     if (k.has('KeyW') || k.has('ArrowUp')) dy += 1;
     if (k.has('KeyS') || k.has('ArrowDown')) dy -= 1;
     if (dx || dy) { this.gwant.x += dx * 5 * dt; this.gwant.y += dy * 4 * dt; }
+    // 손으로 하기: 손 위치 → 글러브 (화면 가운데 영역만 움직여도 끝까지)
+    const hc = this.camCtl.on && this.camCtl.hands.center();
+    if (hc) this.gwant.set(THREE.MathUtils.clamp((hc.x - 0.5) / 0.32, -1, 1) * GX, GY1 - THREE.MathUtils.clamp((hc.y - 0.2) / 0.55, 0, 1) * (GY1 - GY0));
     this.gwant.x = THREE.MathUtils.clamp(this.gwant.x, -GX, GX); this.gwant.y = THREE.MathUtils.clamp(this.gwant.y, GY0, GY1);
     this.gpos.lerp(this.gwant, Math.min(1, dt * 18));
     this.glove.position.set(this.gpos.x, this.gpos.y, CZ + 0.05);

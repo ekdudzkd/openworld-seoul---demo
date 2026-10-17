@@ -68,16 +68,47 @@ export class MiniGame {
 
   // ---------- 진행 ----------
   start() {
+    if (this.camChoice && !this.chosen) { this.chooseControl(); return; }
     this.time = this.duration; this.score = 0; this.combo = 0; this.maxCombo = 0;
     this.hearts = this.maxHearts; this.hitFlash = 0;
     this.state = 'countdown'; this.cdT = 3.2;
     $('miniOverlay').innerHTML = '';
     this.reset();
     this.setupHud();
+    this.camCtl?.mount(); // ✋ 손으로 하기 (camctl.js)
     this.renderHud();
+  }
+  restart() { this.start(); }
+
+  // 카메라로도 할 수 있는 게임: { label, desc, on, set(on) } (손 → camctl.js, 몸 → parade.js가 직접 정함)
+  get camChoice() { return this.camCtl?.choice || null; }
+  // 들어올 때 한 번: 키보드로 할지 카메라로 할지 고르기 (게임 중에는 오른쪽 위 버튼으로 바꿈)
+  chooseControl() {
+    const ch = this.camChoice;
+    this.state = 'choose';
+    $('miniOverlay').innerHTML = '';
+    this.setupHud();
+    $('timerBox').classList.add('hidden'); $('hearts').classList.add('hidden');
+    $('miniScore').textContent = 0; $('miniCombo').textContent = '';
+    const el = document.createElement('div');
+    el.className = 'panel ctrl-pick';
+    el.innerHTML = `<h3>어떻게 할까요?</h3><div class="btn-row">
+      <button class="btn big${ch.on ? '' : ' green'}" data-on="0">⌨️ 키보드로 하기<small>키보드 · 마우스</small></button>
+      <button class="btn big${ch.on ? ' green' : ''}" data-on="1">${ch.label}<small>${ch.desc}</small></button></div>
+      <p>1 · 2 키로도 고를 수 있어요 · 게임 중에도 오른쪽 위 버튼으로 바꿀 수 있어요</p>`;
+    const pick = (on) => { removeEventListener('keydown', onKey); sfx.click(); ch.set(on); this.chosen = true; this.start(); };
+    const onKey = (e) => { if (this.state !== 'choose') return removeEventListener('keydown', onKey); if (e.code === 'Digit1') pick(false); else if (e.code === 'Digit2') pick(true); else if (e.code === 'Enter') pick(ch.on); };
+    el.onclick = (e) => { const b = e.target.closest('[data-on]'); if (b) pick(b.dataset.on === '1'); };
+    removeEventListener('keydown', this.chooseKey); this.chooseKey = onKey; // 예전 창의 키 처리는 떼어 냄
+    addEventListener('keydown', onKey);
+    $('miniOverlay').appendChild(el);
   }
 
   update(dt, t, keys) {
+    if (this.state === 'countdown' && this.camCtl?.pending) { // 카메라 준비될 때까지 기다림
+      const cd = $('countdown'); cd.classList.remove('hidden'); cd.textContent = '📷';
+      this.idle(dt, t); return;
+    }
     if (this.state === 'countdown') {
       const prev = Math.ceil(this.cdT);
       this.cdT -= dt;
@@ -130,14 +161,17 @@ export class MiniGame {
   quit() {
     this.state = 'done';
     $('countdown').classList.add('hidden');
+    this.leave();
   }
+  // 미니게임에서 나갈 때 (main.js가 부름)
+  leave() { this.camCtl?.stop(); this.chosen = false; }
 
   finish() {
     if (this.state === 'done') return;
     this.state = 'done';
     $('countdown').classList.add('hidden');
     sfx.end();
-    this.onEnd?.({ id: this.meta.id, title: this.meta.resultTitle || '끝!', score: this.score, coins: this.coins?.() ?? this.score, rows: this.resultRows() });
+    this.onEnd?.({ id: this.meta.id, title: this.resultTitle?.() || this.meta.resultTitle || '끝!', score: this.score, coins: this.coins?.() ?? this.score, rows: this.resultRows() });
   }
 }
 

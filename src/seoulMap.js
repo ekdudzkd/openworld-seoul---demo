@@ -43,6 +43,7 @@ export const LANDMARKS = [
   { id: 'namsan', gu: '중구', x: 8, z: 12, hw: 6.5, hd: 6, zone: 2, door: [-6.5, 0] },
   { id: 'museum', gu: '용산구', x: 2.5, z: 27.5, hw: 4, hd: 2.4, zone: 1, ground: 'plaza', door: [0, -3] },
   { id: 'seoulforest', gu: '성동구', x: 36, z: 11, hw: 5, hd: 3.5, zone: 2, door: [-5, 0] },
+  { id: 'seongsu', gu: '성동구', x: 47.5, z: 12.5, hw: 3, hd: 1.8, zone: 1, ground: 'plaza', door: [0, 2.1] },     // 성수동 카페거리 (스트리트 스냅)
   { id: 'childrenpark', gu: '광진구', x: 63.5, z: 8.5, hw: 4, hd: 3.5, zone: 2, door: [0, 3.5] },
   { id: 'gyeongdong', gu: '동대문구', x: 37.5, z: -13.5, hw: 3.4, hd: 2, zone: 1, ground: 'plaza', door: [0, 2.6] },
   { id: 'rosepark', gu: '중랑구', x: 60.5, z: -34, hw: 1.8, hd: 5, zone: 1, ground: 'path', door: [1.8, 0] },
@@ -96,6 +97,7 @@ export const STYLE_RECTS = [
 ];
 
 const GRID_SONGPA_Z = 45; // 송파구는 이보다 북쪽(잠실·올림픽공원 쪽)만 바둑판
+const HAN_WIDEN = 1;      // 한강을 양쪽으로 이만큼(칸) 넓힘
 
 export class SeoulMap {
   constructor(seed = 2026) {
@@ -109,6 +111,7 @@ export class SeoulMap {
     this.nodes = [];
     this.bridgeInfo = [];
     this.decode();
+    this.widenHan();
     this.markGrid();
     this.addIslands();
     this.paintStreams();
@@ -156,6 +159,25 @@ export class SeoulMap {
       }
     }
     // 한강 타일에도 가까운 강변 구를 기억(표시용 X) — 지도는 '한강'
+  }
+
+  // 한강을 양쪽으로 HAN_WIDEN칸씩 넓힘 (강가 랜드마크 자리는 그대로 둠)
+  // hanOrig: 넓히기 전 한강 — 다리 교각 개수를 예전과 같게 맞출 때 씀
+  widenHan() {
+    this.hanOrig = Uint8Array.from(this.wk, (w) => (w === WK.HAN ? 1 : 0));
+    const keep = LANDMARKS.filter((L) => !L.island && !L.inRiver);
+    const protectedAt = (x, z) => keep.some((L) => Math.abs(x - L.x) < L.hw + 1.5 && Math.abs(z - L.z) < L.hd + 1.5);
+    for (let pass = 0; pass < HAN_WIDEN; pass++) {
+      const add = [];
+      for (let tz = 1; tz < NZ - 1; tz++) for (let tx = 1; tx < NX - 1; tx++) {
+        const k = this.i(tx, tz);
+        if (this.gu[k] < 0) continue;
+        if (![k - 1, k + 1, k - NX, k + NX].some((j) => this.wk[j] === WK.HAN)) continue;
+        if (protectedAt(tx + 0.5 - HX, tz + 0.5 - HZ)) continue;
+        add.push(k);
+      }
+      for (const k of add) { this.tile[k] = T.WATER; this.wk[k] = WK.HAN; this.gu[k] = -1; }
+    }
   }
 
   // 원/타원/사각 칠하기 도우미

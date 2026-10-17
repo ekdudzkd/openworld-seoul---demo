@@ -4,6 +4,7 @@ import { Avatar } from '../character.js';
 import { rng, signTexture } from '../textures.js';
 import { sfx } from '../sfx.js';
 import { MiniGame } from './base.js';
+import { CamControl } from './camctl.js';
 import { npcSkin, HAIRS, TONES } from './npc.js';
 
 const $ = (id) => document.getElementById(id);
@@ -29,6 +30,8 @@ function makeKart(color) {
 }
 
 // 운전면허시험장 카트 레이싱: 3바퀴, 4대
+// 손 핸들 (라디안): 이보다 덜 기울이면 직진 / 이만큼 기울이면 끝까지 / 이보다 더 꺾으면 드리프트
+const HAND_DEAD = 0.14, HAND_FULL = 0.85, HAND_DRIFT = 0.95;
 export class KartGame extends MiniGame {
   static meta = {
     id: 'kart', title: '면허시험장 카트', duration: 150, resultTitle: '레이스 끝!', fov: 55, sky: '#a8dcf5',
@@ -36,6 +39,8 @@ export class KartGame extends MiniGame {
   };
 
   build() {
+    this.handSteer = 0;
+    this.camCtl = new CamControl(this, { hint: '✊✊ 두 손으로 핸들을 잡듯이 → 돌리면 방향, 쥐고 있으면 가속, 두 손을 활짝 펴면 브레이크, 크게 꺾으면 드리프트!' });
     const s = this.scene;
     s.fog = new THREE.Fog('#a8dcf5', 50, 110);
     this.lights({ pos: [-10, 30, 14], size: 45, intensity: 1.9 });
@@ -249,10 +254,24 @@ export class KartGame extends MiniGame {
   step(dt, t) {
     this.lightsOn.forEach((l) => l.material.color.set('#5fc04a'));
     const keys = this.keysRef;
-    const thr = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
-    const steer = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+    let thr = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
+    let steer = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
     const me = this.me;
     me.drift = keys.has('Space') && Math.abs(steer) > 0;
+    // 손으로 하기: 두 손을 잇는 선의 기울기 = 핸들
+    const cam = this.camCtl.on && this.camCtl.hands;
+    if (cam && !thr && !steer) {
+      const a = cam.wheel(), hs = cam.fresh;
+      if (a !== null) {
+        const u = THREE.MathUtils.clamp((Math.abs(a) - HAND_DEAD) / (HAND_FULL - HAND_DEAD), 0, 1);
+        const want = Math.sign(a) * u ** 1.6;
+        this.handSteer += (want - this.handSteer) * Math.min(1, dt * 5);
+        steer = Math.abs(this.handSteer) < 0.03 ? 0 : this.handSteer;
+        thr = hs.every((h) => h.shape === 'open') ? -1 : 1;
+        me.drift = Math.abs(a) > HAND_DRIFT;
+        cam.label = thr < 0 ? '✋✋ 브레이크' : me.drift ? '🔥 드리프트!' : steer ? (steer > 0 ? '➡️ 오른쪽' : '⬅️ 왼쪽') : '⬆️ 앞으로';
+      } else cam.label = hs.length === 1 ? '두 손이 다 보이게 잡아요' : '';
+    }
     if (!me.done) this.drive(me, dt, thr, steer, me.drift); else this.drive(me, dt, 0, 0, false);
     for (const k of this.karts) if (!k.user) this.aiStep(k, dt);
     // 카트끼리 부딪힘

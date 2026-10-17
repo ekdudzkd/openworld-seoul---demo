@@ -3,6 +3,7 @@ import { box, makeTree } from '../world.js';
 import { waterTexture, plankTexture, rng } from '../textures.js';
 import { sfx } from '../sfx.js';
 import { MiniGame } from './base.js';
+import { CamControl } from './camctl.js';
 
 // 물고기 도감: diff = 끌어올리기 난이도(0~1), w = 기본 출현 가중치, far = 멀리 던질수록 늘어나는 가중치
 export const FISH = [
@@ -31,6 +32,10 @@ export class FishingGame extends MiniGame {
   };
 
   build() {
+    this.camCtl = new CamControl(this, {
+      hint: '✊ 주먹을 꾹 쥐면 힘 모으기 → 손을 펴면 던지기 · 찌가 쏙 들어가면 바로 주먹! · 주먹을 쥐고 있으면 초록 막대가 올라가요',
+      onEvent: (type) => { if (type === 'fist') this.press(); else if (type === 'open') this.release(); },
+    });
     const s = this.scene;
     this.scene.fog = new THREE.Fog('#a8dcf5', 30, 70);
     this.lights({ pos: [-8, 16, 6], size: 14 });
@@ -81,7 +86,7 @@ export class FishingGame extends MiniGame {
 
   reset() {
     this.phase = 'ready'; this.power = 0; this.caughtList = []; this.newDex = 0;
-    this.mouseHeld = false; this.msg('Space(또는 마우스)를 꾹 눌러 힘을 모으세요');
+    this.mouseHeld = false; this.msg(this.how('Space(또는 마우스)를 꾹 눌러 힘을 모으세요', '✊ 주먹을 꾹 쥐어 힘을 모으세요'));
     this.hideReel();
   }
 
@@ -123,7 +128,9 @@ export class FishingGame extends MiniGame {
   keyUp(code) { if (code === 'Space' || code === 'KeyE') this.release(); }
   pointerDown() { this.mouseHeld = true; this.press(); }
   pointerUp() { this.mouseHeld = false; this.release(); }
-  held(keys) { return keys.has('Space') || keys.has('KeyE') || this.mouseHeld; }
+  held(keys) { return keys.has('Space') || keys.has('KeyE') || this.mouseHeld || (this.camCtl.on && this.camCtl.hands.anyFist()); }
+  // 안내 문구: 손으로 할 때는 '주먹'으로
+  how(key, hand) { return this.camCtl.on ? hand : key; }
 
   press() {
     if (this.state !== 'play') return;
@@ -194,7 +201,7 @@ export class FishingGame extends MiniGame {
       b.position.y = 0.02 + Math.sin(t * 3) * 0.03 - (Math.sin(t * 7.3) > 0.97 ? 0.06 : 0); // 가끔 톡톡
       if (this.waitT <= 0) {
         this.phase = 'bite'; this.biteT = 0.85 - this.fish.diff * 0.3;
-        this.msg('!!! 지금 누르세요', 'bite'); sfx.tick(); this.ripple(b.position, true);
+        this.msg(this.how('!!! 지금 누르세요', '!!! 지금 주먹!'), 'bite'); sfx.tick(); this.ripple(b.position, true);
       }
     } else if (this.phase === 'bite') {
       this.biteT -= dt;
@@ -206,7 +213,7 @@ export class FishingGame extends MiniGame {
       this.retT += dt / 0.45;
       const k = Math.min(1, this.retT), tp = this.tipPos();
       b.position.lerpVectors(this.from, tp, k); b.position.y += Math.sin(k * Math.PI) * 0.6;
-      if (k >= 1) { this.phase = 'ready'; setTimeout(() => this.phase === 'ready' && this.state === 'play' && this.msg('Space를 꾹 눌러 다시 던지기'), 900); }
+      if (k >= 1) { this.phase = 'ready'; setTimeout(() => this.phase === 'ready' && this.state === 'play' && this.msg(this.how('Space를 꾹 눌러 다시 던지기', '✊ 주먹을 꾹 쥐어 다시 던지기')), 900); }
     } else if (this.phase === 'caught') {
       this.caughtT += dt;
       const k = Math.min(1, this.caughtT / 0.8);
@@ -215,7 +222,7 @@ export class FishingGame extends MiniGame {
       this.fishMesh.position.y += Math.sin(k * Math.PI) * 2.5;
       this.fishMesh.rotation.z += dt * 10 * (1 - k);
       this.armX = -2.4;
-      if (this.caughtT > 1.7) { this.scene.remove(this.fishMesh); this.phase = 'ready'; this.msg('Space를 꾹 눌러 다시 던지기'); }
+      if (this.caughtT > 1.7) { this.scene.remove(this.fishMesh); this.phase = 'ready'; this.msg(this.how('Space를 꾹 눌러 다시 던지기', '✊ 주먹을 꾹 쥐어 다시 던지기')); }
     }
     this.animate(dt, t);
   }

@@ -10,7 +10,6 @@ import { sfx } from './sfx.js';
 export const PIERS = [
   { id: 'gangseo', name: '강서', gu: '강서구', lon: 126.817, lat: 37.586 },
   { id: 'ichon', name: '이촌', gu: '용산구', lon: 126.973, lat: 37.518 },
-  { id: 'banpo', name: '반포', gu: '서초구', lon: 126.996, lat: 37.510 },
   { id: 'ttukseom', name: '뚝섬', gu: '광진구', lon: 127.067, lat: 37.529 },
   { id: 'gangdong', name: '강동', gu: '강동구', lon: 127.122, lat: 37.552 },
 ];

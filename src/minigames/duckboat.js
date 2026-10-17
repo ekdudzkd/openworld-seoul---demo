@@ -4,6 +4,7 @@ import { Avatar } from '../character.js';
 import { waterTexture, signTexture, rng } from '../textures.js';
 import { sfx } from '../sfx.js';
 import { MiniGame } from './base.js';
+import { CamControl } from './camctl.js';
 import { npcSkin, HAIRS, TONES } from './npc.js';
 
 const $ = (id) => document.getElementById(id);
@@ -40,6 +41,11 @@ export class DuckBoatGame extends MiniGame {
   };
 
   build() {
+    this.camCtl = new CamControl(this, {
+      hint: '✋✋ 두 손을 앞으로 내밀고 오리처럼 첨벙첨벙! 손을 아래로 휙 내릴 때마다 앞으로 · 두 손을 왼쪽/오른쪽으로 옮기면 방향',
+      onEvent: (type, h) => { if (type === 'stroke') this.paddle(h); },
+    });
+    this.splashes = [];
     const s = this.scene;
     s.fog = new THREE.Fog('#9fd8f5', 40, 95);
     this.lights({ pos: [-8, 20, 6], size: 20 });
@@ -100,14 +106,22 @@ export class DuckBoatGame extends MiniGame {
     this.layout(this.n || 6);
     const pick = document.createElement('div');
     pick.className = 'panel duck-pick';
-    pick.innerHTML = `<h3>몇 척이서 겨룰까요?</h3><div class="btn-row">${[2, 3, 4, 5, 6].map((n) => `<button class="btn${n === (this.n || 6) ? ' green' : ''}" data-n="${n}">${n}척</button>`).join('')}</div><p>숫자키 2~6 으로도 고를 수 있어요 · 나 포함</p>`;
-    pick.onclick = (e) => { const n = +e.target.dataset?.n; if (n) this.begin(n); };
+    pick.innerHTML = `<h3>몇 척이서 겨룰까요?</h3><div class="btn-row">${[2, 3, 4, 5, 6].map((n) => `<button class="btn${n === (this.n || 6) ? ' green' : ''}" data-n="${n}">${n}척</button>`).join('')}</div><p>숫자키 2~6 으로도 고를 수 있어요 · 나 포함</p>
+      <h3 class="ctrl-h">어떻게 할까요?</h3><div class="btn-row ctrl-row"><button class="btn" data-c="0">⌨️ 키보드로<small>Space 연타 · A/D</small></button><button class="btn" data-c="1">✋ 손으로 첨벙첨벙<small>웹캠에 두 손을 비춰요</small></button></div>`;
+    const mark = () => pick.querySelectorAll('[data-c]').forEach((b) => b.classList.toggle('green', (b.dataset.c === '1') === this.camCtl.on));
+    mark();
+    pick.onclick = (e) => {
+      const c = e.target.closest('[data-c]'); if (c) { sfx.click(); this.camCtl.save(c.dataset.c === '1'); mark(); return; }
+      const n = +e.target.dataset?.n; if (n) this.begin(n);
+    };
     $('miniOverlay').appendChild(pick);
   }
+  // 게임 중 조작을 바꾸면 인원 고르기는 건너뛰고 바로 다시 시작
+  restart() { this.state = 'setup'; this.begin(this.n || 6); }
   begin(n) {
     if (this.state !== 'setup') return;
     sfx.click();
-    this.n = n;
+    this.n = n; this.chosen = true;
     super.start();
   }
   keyDown(code) {
@@ -118,6 +132,20 @@ export class DuckBoatGame extends MiniGame {
       this.me.v = Math.min(MAX_V, this.me.v + 0.85);
       this.me.pedal = 0.25;
       if (Math.random() < 0.3) sfx.step();
+    }
+  }
+  // 손으로 첨벙: 손 하나 내릴 때마다 키 한 번만큼 + 그쪽 뱃전에 물보라
+  paddle(h) {
+    if (this.state !== 'play' || this.me.done) return;
+    this.keyDown('Space');
+    sfx.drum('kick');
+    const side = h.x < 0.5 ? -1 : 1; // 화면 왼쪽 손 → 배 왼쪽
+    this.me.slap = { side, t: 0.3 };
+    const p = this.me.g.position;
+    for (let i = 0; i < 10; i++) {
+      const m = box(0.18, 0.18, 0.18, '#e8f8ff', p.x + side * (0.7 + Math.random() * 0.3), 0.15, p.z - 0.2 + (Math.random() - 0.5) * 0.8, this.scene);
+      m.castShadow = false;
+      this.splashes.push({ m, vx: side * (0.5 + Math.random()), vy: 2.5 + Math.random() * 1.5, vz: (Math.random() - 0.5), t: 0 });
     }
   }
   pointerDown() { this.keyDown('Space'); }
@@ -206,8 +234,17 @@ export class DuckBoatGame extends MiniGame {
 
   step(dt, t) {
     this.waterTex.offset.y = (t * 0.05) % 1;
-    const dir = (this.keysRef.has('KeyA') || this.keysRef.has('ArrowLeft') ? -1 : 0) + (this.keysRef.has('KeyD') || this.keysRef.has('ArrowRight') ? 1 : 0);
+    let dir = (this.keysRef.has('KeyA') || this.keysRef.has('ArrowLeft') ? -1 : 0) + (this.keysRef.has('KeyD') || this.keysRef.has('ArrowRight') ? 1 : 0);
+    // 손으로 하기: 두 손(가운데)을 왼쪽/오른쪽으로 옮기면 방향
+    const hc = this.camCtl.on && this.camCtl.hands.center();
+    if (hc && !dir) dir = hc.x < 0.38 ? -1 : hc.x > 0.62 ? 1 : 0;
     this.me.steer = dir;
+    // 물보라
+    for (let i = this.splashes.length - 1; i >= 0; i--) {
+      const sp = this.splashes[i]; sp.t += dt; sp.vy -= 12 * dt;
+      sp.m.position.x += sp.vx * dt; sp.m.position.y += sp.vy * dt; sp.m.position.z += sp.vz * dt - this.me.v * dt * 0.3;
+      if (sp.t > 0.6 || sp.m.position.y < -0.1) { this.scene.remove(sp.m); sp.m.geometry.dispose(); this.splashes.splice(i, 1); }
+    }
     for (const b of this.racers) {
       if (!b.user) this.aiStep(b, dt, t);
       // 물의 저항
@@ -242,6 +279,12 @@ export class DuckBoatGame extends MiniGame {
       b.g.rotation.z = Math.sin(t * 1.7 + b.i) * 0.03 + b.steer * 0.05;
       b.g.rotation.x = Math.min(0.08, b.v * 0.008);
       b.av?.animate(dt, t, { moving: b.v > 1 && !b.done, run: b.v > 6, armsUp: b.done && b.rank <= 3 });
+      // 손으로 할 때 내 캐릭터도 두 팔을 내밀고 첨벙첨벙 (뒤에서 보므로 화면 왼쪽 팔 = armR)
+      if (b.user && b.av && this.camCtl.on && !b.done) {
+        const J = b.av.joints, s = b.slap; if (s) { s.t -= dt; if (s.t <= 0) b.slap = null; }
+        const arm = (j, side) => { j.rotation.x = -1.5 + (b.slap?.side === side ? 0.9 * (b.slap.t / 0.3) : -0.15); j.rotation.z = 0; };
+        arm(J.armR, -1); arm(J.armL, 1);
+      }
     }
     // 배끼리 부딪힘
     for (let i = 0; i < this.racers.length; i++) for (let j = i + 1; j < this.racers.length; j++) {

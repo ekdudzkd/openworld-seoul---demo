@@ -12,6 +12,8 @@ import { KartGame } from './kart.js';
 import { KaraokeGame } from './karaoke.js';
 import { GuideGame } from './guide.js';
 import { ParadeGame } from './parade.js';
+import { FlightGame } from './flight.js';
+import { FashionGame } from './fashion.js';
 
 // 새 미니게임은 여기에 등록하고, world.js에 입구(interactable kind:'minigame', game:id)를 추가하면 됩니다.
-export const GAMES = { fruit: FruitGame, fish: FishingGame, chicken: ChickenGame, bug: BugGame, runner: RunnerGame, soccer: SoccerGame, duckboat: DuckBoatGame, locks: LockGame, catchball: CatchBallGame, feed: FeedGame, kart: KartGame, karaoke: KaraokeGame, guide: GuideGame, parade: ParadeGame };
+export const GAMES = { fruit: FruitGame, fish: FishingGame, chicken: ChickenGame, bug: BugGame, runner: RunnerGame, soccer: SoccerGame, duckboat: DuckBoatGame, locks: LockGame, catchball: CatchBallGame, feed: FeedGame, kart: KartGame, karaoke: KaraokeGame, guide: GuideGame, parade: ParadeGame, flight: FlightGame, fashion: FashionGame };
