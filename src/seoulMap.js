@@ -36,6 +36,7 @@ export const BRIDGES = [
 export const LANDMARKS = [
   // 강북
   { id: 'gyeongbok', gu: '종로구', x: 0.5, z: -15, hw: 6.5, hd: 7.5, zone: 1, ground: 'plaza', door: [0, 8] },
+  { id: 'bugak', gu: '종로구', x: 3.3, z: -29.8, hw: 2.4, hd: 1.6, zone: 1, ground: 'plaza', door: [0, 1.9] },   // 북악스카이웨이 팔각정 (야경 전망대)
   { id: 'gwanghwamun', gu: '종로구', x: 0.5, z: -4, hw: 2.4, hd: 3.2, zone: 1, ground: 'plaza', door: [0, 3.5] },
   { id: 'heunginjimun', gu: '종로구', x: 21, z: -5.5, hw: 2, hd: 1.4, zone: 1, door: [0, 2] },
   { id: 'ddp', gu: '중구', x: 20.5, z: 4.5, hw: 3.2, hd: 2.3, zone: 1, ground: 'plaza', door: [0, -2.8] },
@@ -84,7 +85,7 @@ export const LANDMARKS = [
 const FORESTS = [
   ['북한산', 126.985, 37.665, 13], ['도봉산', 127.018, 37.692, 7], ['수락산', 127.078, 37.688, 6], ['불암산', 127.093, 37.650, 5],
   ['관악산', 126.957, 37.447, 11], ['청계산', 127.040, 37.437, 7], ['우면산', 127.005, 37.468, 4], ['아차산', 127.104, 37.568, 4],
-  ['인왕산', 126.958, 37.585, 3.5], ['안산', 126.942, 37.578, 2.5], ['대모산', 127.080, 37.474, 4], ['봉산', 126.902, 37.613, 3], ['개화산', 126.808, 37.580, 3],
+  ['인왕산', 126.958, 37.585, 3.5], ['북악산', 126.982, 37.597, 5.5], ['안산', 126.942, 37.578, 2.5], ['대모산', 127.080, 37.474, 4], ['봉산', 126.902, 37.613, 3], ['개화산', 126.808, 37.580, 3],
 ];
 // 건물 스타일 강제 구역
 export const STYLE_RECTS = [
@@ -97,7 +98,9 @@ export const STYLE_RECTS = [
 ];
 
 const GRID_SONGPA_Z = 45; // 송파구는 이보다 북쪽(잠실·올림픽공원 쪽)만 바둑판
-const HAN_WIDEN = 1;      // 한강을 양쪽으로 이만큼(칸) 넓힘
+const HAN_WIDEN = 1;
+// 북악스카이웨이 길 (x, z) — 팔각정(bugak 랜드마크) 앞을 지나감
+export const SKYWAY = [[-5.6, -23.2], [-4.2, -25.6], [-2.0, -26.2], [-0.8, -27.6], [1.0, -27.5], [5.8, -27.5], [7.2, -28.8], [9.0, -29.2], [10.6, -27.4], [12.6, -26.6], [14.6, -28.0], [16.8, -27.6]];      // 한강을 양쪽으로 이만큼(칸) 넓힘
 
 export class SeoulMap {
   constructor(seed = 2026) {
@@ -120,6 +123,7 @@ export class SeoulMap {
     this.gangnamGrid();
     this.hanBridges();
     this.gangbukRoads();
+    this.skyway();
     this.connectDoors();
   }
 
@@ -435,6 +439,21 @@ export class SeoulMap {
   }
 
   // 랜드마크 입구 → 가장 가까운 길까지 곧은 길
+  // 북악스카이웨이: 창의문 → 북악산 숲 속 구불구불한 고갯길 → 팔각정 앞 → 아리랑고개
+  skyway() {
+    const pts = SKYWAY;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1];
+      const steps = Math.ceil(Math.hypot(bx - ax, bz - az) / 0.25);
+      for (let j = 0; j <= steps; j++) {
+        const u = j / steps, x = ax + (bx - ax) * u, z = az + (bz - az) * u;
+        this.each(x - 1.5, x + 1.5, z - 1.5, z + 1.5, (k, cx, cz) => {
+          if (Math.hypot(cx - x, cz - z) <= 0.75 && this.isLand(k) && this.zone[k] !== ZN.LANDMARK) this.tile[k] = T.ROAD;
+        });
+      }
+    }
+  }
+
   connectDoors() {
     for (const L of LANDMARKS) {
       if (L.inRiver || L.island) continue;

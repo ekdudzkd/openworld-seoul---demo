@@ -72,6 +72,40 @@ export function buildLandmarks(world, map) {
 
 // 각 랜드마크 (좌표는 랜드마크 중심 기준)
 const B = {
+  // ── 종로구: 북악스카이웨이 팔각정 (야경 전망대) ── 남쪽(+z)이 서울 시내 쪽
+  bugak({ M, col, colC, sign, marker, world, l }) {
+    // 팔각정: 돌 기단 + 붉은 기둥 8개 + 2층 팔각 지붕
+    const px = -0.7, pz = -0.4;
+    M.cyl(1.35, 1.45, 0.35, STONE, px, 0.175, pz, 8);
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + Math.PI / 8; M.box(0.13, 1.1, 0.13, RED, px + Math.cos(a) * 1.1, 0.9, pz + Math.sin(a) * 1.1); }
+    M.cyl(1.22, 1.22, 0.14, DAN, px, 1.5, pz, 8);
+    M.cyl(0.75, 1.75, 0.45, GIWA, px, 1.8, pz, 8);            // 1층 지붕
+    M.cyl(0.62, 0.62, 0.5, '#d9c39a', px, 2.25, pz, 8);       // 2층
+    M.cyl(0.66, 0.66, 0.1, DAN, px, 2.5, pz, 8);
+    M.cyl(0.08, 1.15, 0.6, GIWA, px, 2.85, pz, 8);            // 2층 지붕
+    M.box(0.1, 0.25, 0.1, '#c9a24a', px, 3.25, pz);
+    colC(px, pz, 1.35);
+    // 전망 난간 (가운데는 스카이웨이로 나가는 입구)
+    for (const [x0, x1] of [[-2.3, -0.6], [0.6, 2.3]]) {
+      M.box(x1 - x0, 0.08, 0.08, '#7a4a26', (x0 + x1) / 2, 0.6, 1.5);
+      for (let x = x0; x <= x1 + 0.01; x += 0.425) M.box(0.08, 0.6, 0.08, '#7a4a26', x, 0.3, 1.5);
+      col(x0, x1, 1.42, 1.58);
+    }
+    // 한양도성 성곽 조각 (뒤쪽)
+    for (let i = 0; i < 6; i++) M.box(0.9, 0.7 + (i % 2) * 0.12, 0.4, STONE2, -2.2 + i * 0.9, 0.38, -1.4);
+    col(-2.4, 2.4, -1.6, -1.2);
+    // 벤치
+    M.box(0.9, 0.08, 0.32, '#a0703a', 1.6, 0.38, -0.6); for (const x of [1.25, 1.95]) M.box(0.08, 0.34, 0.28, '#6b4a2a', x, 0.17, -0.6);
+    col(1.15, 2.05, -0.78, -0.42);
+    // 망원경 (서울 시내 쪽을 보는 동전 쌍안경) → E: 서울 하늘 둘러보기 (main.js tour)
+    const tx = 1.4, tz = 0.85;
+    M.box(0.12, 0.85, 0.12, '#5b6470', tx, 0.43, tz); M.box(0.5, 0.28, 0.32, '#2f6fd8', tx, 0.98, tz); M.box(0.3, 0.06, 0.2, '#5b6470', tx, 0.82, tz);
+    for (const s of [-0.12, 0.12]) M.box(0.11, 0.11, 0.18, '#1a1a1a', tx + s, 1.0, tz + 0.24);
+    colC(tx, tz, 0.25);
+    marker(tx, 2.0, tz);
+    world.interactables.push({ x: l.x + tx, z: l.z + tz - 0.5, r: 1.3, label: '망원경으로 서울 내려다보기', kind: 'tour' });
+    sign('북악스카이웨이', '북악스카이웨이 팔각정 (종로구)', ['북악산 고갯길을 따라 달리는 북악스카이웨이, 그 꼭대기의 팔각정이에요.', '망원경으로 서울을 내려다볼 수 있어요.\n해가 진 뒤에 오면 반짝이는 야경이 정말 멋져요!'], -2.0, 1.0);
+  },
   // ── 종로구: 경복궁 ──
   gyeongbok({ M, col, sign, tree, l }) {
     const hw = l.hw - 0.2, hd = l.hd - 0.2;
@@ -593,7 +627,7 @@ const B = {
     sign('강남역', '강남역 (강남구)', ['하루 수십만 명이 오가는 강남역 사거리예요.\n강남은 길이 바둑판처럼 반듯해요!'], -1.3, 1.3);
   },
   // ── 송파구: 롯데월드타워 · 석촌호수 · 올림픽공원 ──
-  lotte({ M, col, sign }) {
+  lotte({ M, col, sign, add }) {
     M.box(4.2, 1.2, 4.2, '#d6dde4', 0, 0.6, 0);
     const H = 28, n = 14;
     for (let i = 0; i < n; i++) {
@@ -603,6 +637,17 @@ const B = {
     }
     for (const s of [-1, 1]) M.box(0.22, 2.4, 0.5, '#dfe7ee', s * 0.22, 1.2 + H + 1.2, 0);
     M.box(0.1, H, 0.1, '#e9f0f6', 0, 1.2 + H / 2, 1.1);
+    // 모서리 불빛 줄 + 꼭대기 경고등 (조명 영향 없이 밝아서 밤에 빛나 보임)
+    const glow = new THREE.MeshBasicMaterial({ color: '#fff3cf' });
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * Math.PI * 2, line = new THREE.Mesh(new THREE.BoxGeometry(0.08, H, 0.08), glow);
+      const r = 1.5 * (1 - 0.36); // 가운데 높이의 반지름
+      line.position.set(Math.cos(a) * r, 1.2 + H / 2, Math.sin(a) * r);
+      line.rotation.set(Math.sin(a) * 0.035, 0, -Math.cos(a) * 0.035); // 위로 갈수록 가늘어지는 몸통을 따라 살짝 기울임
+      add(line);
+    }
+    const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshBasicMaterial({ color: '#ff4a3a' }));
+    beacon.position.set(0, 1.2 + H + 2.6, 0); add(beacon);
     col(-2.1, 2.1, -2.1, 2.1);
     sign('롯데월드타워', '롯데월드타워 (송파구)', ['123층, 555m! 우리나라에서 가장 높은 롯데월드타워예요.\n(이 섬에서도 제일 높아요)', '남쪽 석촌호수엔 놀이공원의 성이 떠 있어요.'], 2.5, 2.0);
   },

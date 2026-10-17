@@ -8,6 +8,7 @@ import { buildSubway, STATIONS, LINE2 } from './subway.js';
 import { buildPiers, WaterTaxi } from './watertaxi.js';
 import { GAMES } from './minigames/index.js';
 import { sfx } from './sfx.js';
+import { Tour } from './tour.js';
 
 const $ = (id) => document.getElementById(id);
 const PIX = 3; // 화면을 1/3 해상도로 그린 뒤 확대 → 도트 느낌
@@ -55,6 +56,8 @@ let dialog = null;
 let subway = null; // 지하철 역 고르기 창이 열려 있으면 { from }
 let nearest = null;
 let stepT = 0;
+let tour = null;
+let cab = null;    // 택시 부르기 창이 열려 있으면 { list, sel }   // 팔각정 망원경으로 서울 둘러보는 중이면 Tour
 
 // ---------- 에디터 ----------
 const editor = new SkinEditor({
@@ -161,6 +164,8 @@ addEventListener('keydown', (e) => {
     else if (e.code === 'KeyP') editor.setTool('part');
     else if (e.code === 'KeyI') editor.setTool('picker');
     else if (e.code === 'KeyM') $('mirrorBtn').click();
+  } else if (mode === 'world' && tour) {
+    if (['Escape', 'KeyE', 'Enter', 'Space'].includes(e.code) && !e.repeat) { e.preventDefault(); tour.skip(); }
   } else if (mode === 'world' && subway) {
     const m = /^(Digit|Numpad)([1-9])$/.exec(e.code);
     if (m) { const b = $('subwayLoop').querySelector(`[data-key="${m[2]}"]`); if (b) b.click(); }
@@ -171,6 +176,7 @@ addEventListener('keydown', (e) => {
     if ((e.code === 'KeyE' || e.code === 'Enter') && !e.repeat) interact();
     if (e.code === 'KeyR' && !e.repeat && !dialog) { resetView(); toast('시점을 처음대로 돌렸어요'); }
     if (e.code === 'KeyM' && !e.repeat) mmToggle();
+    if (e.code === 'KeyT' && !e.repeat && !dialog) openCab();
     if (e.code === 'Escape') { if (dialog) closeDialog(); else if (taxi.riding) toast('선착장에서 E를 눌러 내린 다음 나갈 수 있어요'); else transition(() => setMode('draw')); }
   } else if (mode === 'mini') {
     if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
@@ -223,6 +229,7 @@ function interact() {
     player.position.set(x, 0, z); player.rotation.set(0, 0, 0);
     sfx.open(); toast(`${nearest.pier.name} 선착장에 내렸어요`);
   }
+  if (nearest.kind === 'tour') startTour();
   if (nearest.kind === 'minigame') {
     sfx.open();
     miniEntry = nearest; mini = getGame(nearest.game);
@@ -273,6 +280,82 @@ function rideTo(id) {
     setTimeout(() => transition(() => { tv.classList.add('hidden'); sfx.open(); toast(`${to.name}역에 도착했어요!`); }), 1700);
   });
 }
+
+// ---------- 택시 (데모) ----------
+// 요금: 걸어서 10초 걸리는 거리마다 10골드 (걷는 속도 WALK_SPEED 기준, 직선거리)
+const WALK_SPEED = 4.2, CAB_FARE_PER_SEC = 1, CAB_MIN_FARE = 5;
+const cabFare = (d) => Math.max(CAB_MIN_FARE, Math.ceil((d / WALK_SPEED) * CAB_FARE_PER_SEC));
+function cabPlaces() {
+  const out = [];
+  for (const p of world.landmarkPins) out.push({ cat: '명소', name: p.name, x: p.x, z: p.z });
+  for (const it of world.interactables) if (it.kind === 'minigame') out.push({ cat: '미니게임', name: it.label, x: it.ret?.[0] ?? it.x, z: it.ret?.[1] ?? it.z });
+  for (const s of world.stations || []) out.push({ cat: '지하철', name: `${s.name}역`, x: s.exit[0], z: s.exit[1] });
+  for (const p of world.piers || []) out.push({ cat: '수상택시', name: `${p.name} 선착장`, x: p.land[0], z: p.land[1] });
+  return out;
+}
+function openCab() {
+  if (cab || subway || tour) return;
+  if (taxi.riding) { toast('수상택시에서 내린 다음 택시를 부를 수 있어요'); return; }
+  closeDialog(); keys.clear(); sfx.open();
+  cab = { all: cabPlaces(), list: [], sel: 0 };
+  $('cabPanel').classList.remove('hidden');
+  $('cabSearch').value = '';
+  renderCab();
+  setTimeout(() => $('cabSearch').focus(), 0);
+}
+function closeCab() { cab = null; $('cabPanel').classList.add('hidden'); $('cabSearch').blur(); }
+function renderCab() {
+  const norm = (s) => s.replace(/\s/g, '').toLowerCase(); // 띄어쓰기·대소문자 무시
+  const q = norm($('cabSearch').value);
+  const p = player.position;
+  cab.list = cab.all
+    .filter((d) => !q || norm(d.name).includes(q) || d.cat.includes(q))
+    .map((d) => { const dist = Math.hypot(d.x - p.x, d.z - p.z); return { ...d, dist, fare: cabFare(dist) }; })
+    .sort((a, b) => a.dist - b.dist);
+  cab.sel = Math.min(cab.sel, Math.max(0, cab.list.length - 1));
+  $('cabList').innerHTML = cab.list.length ? cab.list.map((d, i) => {
+    const near = d.dist < 6, poor = d.fare > save.coins;
+    const why = near ? '바로 근처예요' : poor ? '골드가 모자라요' : '';
+    return `<button class="cab-row${i === cab.sel ? ' sel' : ''}" data-i="${i}" ${near || poor ? 'disabled' : ''}>
+      <em class="cat-${d.cat}">${d.cat}</em><b>${d.name}</b>
+      <span>${why || `걸어서 ${Math.round(d.dist / WALK_SPEED)}초`}</span><i class="coin"></i><strong>${d.fare}</strong></button>`;
+  }).join('') : '<p class="cab-empty">찾는 곳이 없어요</p>';
+  $('cabList').querySelector('.sel')?.scrollIntoView({ block: 'nearest' });
+}
+function rideCab(d) {
+  if (!cab || !d) return;
+  if (d.dist < 6) { toast('바로 근처예요. 걸어가 봐요!'); return; }
+  if (d.fare > save.coins) { sfx.miss(); toast(`골드가 ${d.fare - save.coins}개 모자라요`); return; }
+  closeCab();
+  save.coins -= d.fare; persist(); $('hudCoins').textContent = save.coins;
+  sfx.coin();
+  // 내릴 자리: 목적지 근처에서 걸을 수 있는 곳
+  let spot = [d.x, d.z];
+  for (let r = 0; r <= 4; r += 0.5) {
+    const n = Math.max(1, Math.round(r * 6)); let ok = false;
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2, x = d.x + Math.cos(a) * r, z = d.z + Math.sin(a) * r; if (world.canWalk(x, z, 0.4)) { spot = [x, z]; ok = true; break; } }
+    if (ok) break;
+  }
+  const tv = $('travel');
+  $('travelText').innerHTML = `🚕 <b>${d.name}</b>(으)로 가는 중…<br><small>요금 ${d.fare}골드를 냈어요</small>`;
+  transition(() => {
+    tv.classList.add('cab'); tv.classList.remove('hidden');
+    player.position.set(spot[0], 0, spot[1]); airborne = false; vy = 0;
+    gameMinutes = (gameMinutes + Math.max(10, Math.round(d.dist / WALK_SPEED / 30) * 10)) % (24 * 60);
+    snapCamera();
+    setTimeout(() => transition(() => { tv.classList.add('hidden'); tv.classList.remove('cab'); sfx.open(); toast(`🚕 ${d.name}에 도착했어요! (-${d.fare}골드)`); }), 1500);
+  });
+}
+$('cabBtn').onclick = () => { sfx.click(); if (mode === 'world') (cab ? closeCab() : openCab()); };
+$('cabClose').onclick = () => { sfx.click(); closeCab(); };
+$('cabSearch').oninput = () => { if (cab) { cab.sel = 0; renderCab(); } };
+$('cabSearch').onkeydown = (e) => {
+  if (!cab) return;
+  if (e.code === 'Escape') { closeCab(); return; }
+  if (e.code === 'ArrowDown' || e.code === 'ArrowUp') { e.preventDefault(); cab.sel = Math.max(0, Math.min(cab.list.length - 1, cab.sel + (e.code === 'ArrowDown' ? 1 : -1))); renderCab(); }
+  if (e.code === 'Enter' && !e.isComposing) { e.preventDefault(); rideCab(cab.list[cab.sel]); }
+};
+$('cabList').onclick = (e) => { const b = e.target.closest('[data-i]'); if (b && !b.disabled) rideCab(cab.list[+b.dataset.i]); };
 
 // ---------- 결과/연출 ----------
 function showResult({ id, title, score, coins, rows }) {
@@ -373,7 +456,7 @@ function updateWorld(dt, t) {
     yaw = b.heading;
     player.position.set(b.x - Math.sin(b.heading) * 0.55, b.y, b.z - Math.cos(b.heading) * 0.55);
     player.visible = b.sink < 0.6;
-  } else if (!dialog && !subway) {
+  } else if (!dialog && !subway && !cab) {
     // 카메라가 보는 방향 기준으로 이동 (W = 화면 안쪽)
     let f = 0, r = 0;
     if (keys.has('KeyW') || keys.has('ArrowUp')) f += 1;
@@ -424,7 +507,7 @@ function updateWorld(dt, t) {
     if (d < it.r && d < best) { best = d; nearest = it; }
   }
   const bubble = $('promptBubble');
-  if (nearest && !dialog && !subway) {
+  if (nearest && !dialog && !subway && !cab) {
     const v = new THREE.Vector3(nearest.x, 2.6, nearest.z).project(camera);
     bubble.innerHTML = `<b>E</b>${nearest.label}`;
     bubble.style.left = `${(v.x * 0.5 + 0.5) * innerWidth}px`;
@@ -448,6 +531,35 @@ function updateWorld(dt, t) {
   if (place !== lastPlace) { lastPlace = place; $('hudPlace').textContent = `서울 · ${place}`; }
   drawMinimap();
   tickClock(dt);
+}
+
+// ---------- 팔각정 망원경: 서울 하늘 둘러보기 ----------
+function startTour() {
+  sfx.open(); keys.clear();
+  $('promptBubble').classList.add('hidden');
+  $('hud').classList.add('hidden'); // 둘러보는 동안 화면을 시원하게
+  const home = world.interactables.find((i) => i.kind === 'tour');
+  tour = new Tour(camera, home, { pos: camera.position.clone(), look: new THREE.Vector3(cam.target.x, cam.target.y + 0.8, cam.target.z) });
+}
+function updateTour(dt, t) {
+  avatar.animate(dt, t, { yaw: Math.PI }); // 망원경 쪽(남쪽)을 보고 서 있음
+  world.update(dt, t, null, null);
+  tickClock(dt);
+  drawMinimap();
+  if (tour.update(dt)) endTour();
+}
+function endTour() {
+  tour.dispose(); tour = null;
+  $('hud').classList.remove('hidden');
+  snapCamera();
+  // 해가 진 뒤에 보면 야경 도장 (처음 한 번 보상)
+  if (dayNight.sample(gameMinutes / 60).night > 0.5) {
+    if (!save.stamps?.nightView) {
+      save.stamps = { ...save.stamps, nightView: true }; save.coins += 50; persist();
+      $('hudCoins').textContent = save.coins; sfx.gold();
+      toast('🌃 서울 야경 도장을 받았어요! +50골드');
+    } else toast('반짝반짝 서울 야경이에요 🌃');
+  } else toast('해가 진 뒤에 다시 보면 반짝이는 야경을 볼 수 있어요! (야경 도장 +50골드)');
 }
 
 // 시계 (스타듀처럼 10분 단위) — 월드와 미니게임 모두에서 흐름
@@ -620,9 +732,9 @@ function frame(ts) {
     world.followSun(p);
     renderer.render(world.scene, camera);
   } else if (mode === 'world') {
-    updateWorld(dt, t);
+    if (tour) updateTour(dt, t); else updateWorld(dt, t);
     dayNight.update(gameMinutes / 60, t, camera.position);
-    world.followSun(player.position);
+    world.followSun(tour ? tour.focus : player.position);
     renderer.render(world.scene, camera);
   } else if (mode === 'mini') {
     mini.update(dt, t, keys);

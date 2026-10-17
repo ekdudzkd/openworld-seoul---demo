@@ -97,13 +97,22 @@
       <div id="hudTime">6:00 am</div>
       <div class="coins"><i class="coin"></i><span id="hudCoins">0</span></div>
     </div>
-    <div class="hud-hint">WASD 이동 · Shift 달리기 · Space 점프 · E 상호작용 · 드래그 시점 회전(위로 끌면 하늘) · 휠 줌 · R 시점 초기화 · M 지도 · Esc 다시 꾸미기</div>
+    <div class="hud-hint">WASD 이동 · Shift 달리기 · Space 점프 · E 상호작용 · 드래그 시점 회전(위로 끌면 하늘) · 휠 줌 · R 시점 초기화 · M 지도 · T 택시 · Esc 다시 꾸미기</div>
     <canvas id="minimap" title="M·클릭: 지도 크게/작게 · 휠: 확대/축소 · 큰 지도는 드래그로 이동"></canvas>
     <div id="promptBubble" class="hidden"></div>
     <div id="dialog" class="panel hidden">
       <div id="dialogName"></div>
       <div id="dialogText"></div>
       <div class="dialog-next">▼</div>
+    </div>
+    <!-- 택시 부르기 (데모: 왼쪽 버튼 / T) -->
+    <button id="cabBtn" class="btn cab-btn" title="택시 부르기 (T)">🚕 <span>택시</span> <small>T</small></button>
+    <div id="cabPanel" class="panel hidden">
+      <h2>🚕 택시 부르기</h2>
+      <p class="subway-sub">어디로 갈까요? · 걸어서 10초 거리마다 10골드</p>
+      <input id="cabSearch" type="text" placeholder="목적지 검색 (예: 남산, 롯데, 강남역, 낚시)" autocomplete="off" spellcheck="false">
+      <div id="cabList" class="cab-list"></div>
+      <div class="btn-row"><button class="btn" id="cabClose">닫기 (Esc)</button></div>
     </div>
     <!-- 지하철 역 고르기 -->
     <div id="subwayPanel" class="panel hidden">

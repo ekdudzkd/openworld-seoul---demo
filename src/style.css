@@ -332,3 +332,32 @@ button, input { font-family: inherit; }
 .ctrl-pick p { margin: 12px 0 0; font-size: 12px; }
 .ctrl-pick .btn small, .ctrl-row .btn small { display: block; font-size: 11px; font-weight: 400; margin-top: 4px; }
 .ctrl-pick .btn-row, .ctrl-row { flex-wrap: wrap; justify-content: center; }
+
+/* ---------- 팔각정 망원경 ---------- */
+.tour-cap { position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%); z-index: 20; text-align: center; min-width: min(420px, calc(100vw - 32px)); max-width: calc(100vw - 32px); animation: pop .3s steps(3); }
+.tour-cap b { display: block; font-size: 20px; margin-bottom: 4px; }
+.tour-cap span { font-size: 13px; }
+.tour-skip { position: fixed; right: 16px; bottom: 16px; z-index: 20; color: #fff; font-size: 12px; text-shadow: 2px 2px 0 rgba(0,0,0,.7); }
+
+/* ---------- 택시 (데모) ---------- */
+.cab-btn { position: absolute; left: 16px; top: 92px; pointer-events: auto; font-size: 16px; padding: 7px 12px; }
+.cab-btn small { font-size: 10px; opacity: .7; margin-left: 2px; }
+#cabPanel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 32px)); pointer-events: auto; text-align: center; }
+#cabPanel h2 { margin: 0 0 4px; font-size: 22px; }
+#cabSearch { width: 100%; font-size: 16px; padding: 8px 10px; border: 3px solid var(--ink); background: #fffaf0; margin-bottom: 8px; }
+.cab-list { max-height: min(46vh, 340px); overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; text-align: left; }
+.cab-row { display: flex; align-items: center; gap: 8px; width: 100%; font-family: inherit; font-size: 14px; color: var(--ink); background: #fff8e6; border: 2px solid var(--ink); padding: 6px 8px; cursor: pointer; }
+.cab-row b { flex: 1; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cab-row span { font-size: 11px; color: #8a5a35; white-space: nowrap; }
+.cab-row strong { min-width: 34px; text-align: right; }
+.cab-row em { font-style: normal; font-size: 10px; font-weight: 700; color: #fff; padding: 1px 5px; background: #8a5a35; white-space: nowrap; }
+.cab-row em.cat-명소 { background: #2f7fd8; } .cab-row em.cat-미니게임 { background: #e8413a; } .cab-row em.cat-지하철 { background: #33a23d; } .cab-row em.cat-수상택시 { background: #f28c28; }
+.cab-row:hover:not(:disabled), .cab-row.sel:not(:disabled) { background: #ffe14f; }
+.cab-row.sel { outline: 3px solid #f2b05a; }
+.cab-row:disabled { opacity: .5; cursor: default; }
+.cab-empty { font-size: 13px; margin: 12px 0; }
+/* 택시 이동 화면 (지하철 화면을 노란 택시로) */
+#travel.cab .travel-tunnel { background: repeating-linear-gradient(90deg, #4a4f58 0 40px, #ffffff 40px 60px, #4a4f58 60px 100px) 0 50% / 100px 4px no-repeat, #4a4f58; animation: road .3s linear infinite; }
+#travel.cab .travel-train i:not(:first-child) { display: none; }
+#travel.cab .travel-train i { width: 96px; height: 40px; background: #ffd23f; box-shadow: inset 0 -10px 0 #3a3f4a, inset 0 8px 0 #9fd6f2; }
+@keyframes road { to { background-position: -100px 50%, 0 0; } }
